@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17.5 # matches the default from cloudlnative 1.27.0 (this app's cloudnative version)
+    restart: always
+    
+    environment:
+      POSTGRES_USER: crossword_db_user
+      POSTGRES_PASSWORD: local_pg_password
+      POSTGRES_DB: crossword_db
+      
+    ports:
+      - '5432:5432'
+      
+    # This maps a local directory (./data - managed by Docker Desktop) to the directory inside the
+    # container where PostgreSQL stores its data.
+    volumes:
+      - ./data:/var/lib/postgresql/data
+
+volumes:
+  data:

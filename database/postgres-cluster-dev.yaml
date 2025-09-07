@@ -1,0 +1,22 @@
+apiVersion: "postgresql.cnpg.io/v1"
+kind: Cluster
+metadata:
+  name: postgres-main-dev
+spec:
+  instances: 1
+  storage:
+    size: "1Gi"
+    storageClass: "do-block-storage"
+
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m" 
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+
+  bootstrap:
+    initdb:
+      database: crossword_db
+      owner: crossword_db_user
