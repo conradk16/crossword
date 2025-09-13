@@ -62,7 +62,7 @@ if __name__ == '__main__':
     if len(sys.argv) != 3 or sys.argv[1] not in ['dev', 'prod']:
         print('usage: python3 deploy.py <dev/prod> <7_char_commit_sha>')
         quit()
-    print(f'deploying {sys.argv[1]}')
+    print(f'Deploying {sys.argv[1]}')
     ec2_ip = '98.82.151.44' if sys.argv[1] == 'prod' else '54.158.16.33'
     parent_filepath = str(Path(__file__).resolve().parent)
     docker_compose_filepath = parent_filepath + f'/docker-compose-{sys.argv[1]}.yml'
