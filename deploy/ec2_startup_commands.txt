@@ -7,4 +7,9 @@ sudo usermod -aG docker ec2-user # Add user to docker group to avoid using sudo 
 sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
-gotcha: allow http (flexible) traffic on cloudflare
+sudo docker volume create pgdata
+
+manually setup postgres user/pass (use secret in ASM) and database:
+    CREATE DATABASE crossword_db;
+    CREATE USER <user> WITH PASSWORD '<password>';
+    GRANT ALL PRIVILEGES ON DATABASE crossword_db TO <user>;

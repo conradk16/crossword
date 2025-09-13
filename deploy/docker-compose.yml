@@ -1,4 +1,16 @@
 services:
+  
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_USER: superuser # Super user created on first db initialization
+      POSTGRES_PASSWORD: defaultpassword # Super user password created on first db initialization
+      POSTGRES_DB: defaultdb # Name of database created on first db initialization
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
   nextjs-app:
     image: conradkuklinsky/crossword-nextjs:{{sha}}
     restart: always
@@ -10,3 +22,7 @@ services:
       - "80:80"
     depends_on:
       - nextjs-app
+
+volumes:
+  pgdata:
+    external: true
