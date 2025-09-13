@@ -1,0 +1,12 @@
+services:
+  nextjs-app:
+    image: conradkuklinsky/crossword-nextjs:12887ab
+    restart: always
+
+  nginx:
+    image: conradkuklinsky/crossword-nginx-dev:12887ab
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - nextjs-app

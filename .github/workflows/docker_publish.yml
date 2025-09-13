@@ -41,15 +41,27 @@ jobs:
           context: ./nextjs
           file: ./nextjs/Dockerfile
           push: true
-          #platforms: linux/amd64,linux/arm64 # Makes the image compatible with arm machines but makes the build a lot slower.
           tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nextjs:${{ env.COMMIT_HASH }}
 
-      # Build and push the nginx image
-      - name: Build and push nginx
+      # Build and push the nginx images (dev + prod)
+      - name: Build and push nginx (dev)
         uses: docker/build-push-action@v4
         with:
           context: ./nginx
           file: ./nginx/Dockerfile
           push: true
-          #platforms: linux/amd64,linux/arm64 # Makes the image compatible with arm machines but makes the build a lot slower.
-          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nginx:${{ env.COMMIT_HASH }}
+          build-args: |
+            SERVER_NAME=conradscrossword.dev
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/crossword-nginx-dev:${{ env.COMMIT_HASH }}
+
+      - name: Build and push nginx (prod)
+        uses: docker/build-push-action@v4
+        with:
+          context: ./nginx
+          file: ./nginx/Dockerfile
+          push: true
+          build-args: |
+            SERVER_NAME=conradscrossword.com
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/crossword-nginx-prod:${{ env.COMMIT_HASH }}
