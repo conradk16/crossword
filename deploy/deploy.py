@@ -49,7 +49,7 @@ def deploy(sha, ip, docker_compose_filepath):
     update_docker_compose_with_sha(docker_compose_filepath, sha)
 
     ssh_connection = get_ssh_connection(ip)
-    copy_docker_compose(ssh_connection)
+    copy_docker_compose(ssh_connection, docker_compose_filepath)
 
     run_remote_command(ssh_connection, "docker-compose down")
     run_remote_command(ssh_connection, "docker-compose up -d")
