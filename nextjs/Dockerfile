@@ -14,7 +14,17 @@ RUN npm run build
 
 FROM node:20-alpine
 
+# 1. Install AWS CLI, jq, and Atlas
+RUN apk add --no-cache aws-cli jq
+RUN curl -sSf https://atlasgo.sh | sh
+
 WORKDIR /app
+
+# Copy Atlas schema file and the entrypoint script
+COPY db/schema.pg.hcl /app/db/schema.pg.hcl
+COPY entrypoint.sh /app/entrypoint.sh
+
+RUN chmod +x /app/entrypoint.sh
 
 COPY package.json ./
 COPY package-lock.json ./
@@ -26,4 +36,5 @@ COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["npm", "start"]

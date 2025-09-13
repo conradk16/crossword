@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "npm run db:apply && next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:apply": "atlas schema apply -u \"postgres://local_pg_user:local_pg_password@localhost:5432/crossword_db?sslmode=disable\" -f file://db/schema.pg.hcl --auto-approve"
   },
   "dependencies": {
     "react": "19.1.0",
