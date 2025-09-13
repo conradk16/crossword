@@ -1,10 +1,10 @@
 services:
   nextjs-app:
-    image: conradkuklinsky/crossword-nextjs:12887ab
+    image: conradkuklinsky/crossword-nextjs:{{sha}}
     restart: always
 
   nginx:
-    image: conradkuklinsky/crossword-nginx-prod:12887ab
+    image: conradkuklinsky/crossword-nginx-{{tier}}:{{sha}}
     restart: always
     ports:
       - "80:80"
