@@ -42,7 +42,7 @@ jobs:
           file: ./nextjs/Dockerfile
           push: true
           #platforms: linux/amd64,linux/arm64 # Makes the image compatible with arm machines but makes the build a lot slower.
-          tags: ${{ secrets.DOCKER_USERNAME }}/nextjs:${{ env.COMMIT_HASH }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nextjs:${{ env.COMMIT_HASH }}
 
       # Build and push the nginx image
       - name: Build and push nginx
@@ -52,4 +52,4 @@ jobs:
           file: ./nginx/Dockerfile
           push: true
           #platforms: linux/amd64,linux/arm64 # Makes the image compatible with arm machines but makes the build a lot slower.
-          tags: ${{ secrets.DOCKER_USERNAME }}/nginx:${{ env.COMMIT_HASH }}
+          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nginx:${{ env.COMMIT_HASH }}
