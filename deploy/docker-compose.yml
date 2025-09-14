@@ -23,6 +23,42 @@ services:
     depends_on:
       - nextjs-app
 
+  nginx_certbot_init:
+    image: conradkuklinsky/nginx_certbot_init:{{sha}}
+    container_name: nginx_certbot_init
+    # Set a profile so this service doesn't get run by default with docker-compose up
+    profiles:
+      - "nginx_certbot_init"
+    ports:
+      - "80:80"
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - webroot:/var/www/certbot
+    restart: unless-stopped
+
+  certbot:
+    # Use the official certbot image
+    image: certbot/certbot
+    container_name: certbot
+    # Mount shared volumes at the specified locations
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - webroot:/var/www/certbot
+    restart: unless-stopped
+    # Runs certbot renew every 7 days. Don't force renew so it only renews when the expiry is within 30 days
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do
+        echo \"[Renewal attempt at] $(date)\";
+        certbot renew -n --webroot -w /var/www/certbot;
+        sleep 168h;
+      done"
+    tty: true
+    stdin_open: true
+
 volumes:
+  letsencrypt:
+    external: true
+  webroot:
+    external: true
   pgdata:
     external: true

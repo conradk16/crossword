@@ -21,3 +21,11 @@ manually setup postgres user/pass (use secret in ASM) and database:
     CREATE DATABASE crossword_db;
     CREATE USER <user> WITH PASSWORD '<password>';
     ALTER DATABASE crossword_db OWNER TO <user>;
+
+setting up an SSL certificate:
+    docker volume create webroot
+    docker volume create letsencrypt
+    docker-compose down
+    docker-compose up -d nginx_certbot_init (to run only certbot init)
+    docker run --rm -v letsencrypt:/etc/letsencrypt -v webroot:/var/www/certbot certbot/certbot certonly --webroot -w /var/www/certbot -d conradscrossword.<com/dev> -d www.conradscrossword.<com/dev> --email conradkuklinsky@gmail.com --agree-tos --no-eff-email
+    docker stop nginx_certbot_init
