@@ -52,6 +52,7 @@ def deploy(ip, docker_compose_replacements):
     ssh_connection = get_ssh_connection(ip)
     copy_docker_compose(ssh_connection, docker_compose_filepath, docker_compose_replacements)
 
+    run_remote_command(ssh_connection, "docker-compose pull")
     run_remote_command(ssh_connection, "docker-compose down")
     run_remote_command(ssh_connection, "docker-compose up -d")
     run_remote_command(ssh_connection, "docker image prune -a --force")

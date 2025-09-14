@@ -1,5 +1,4 @@
 services:
-  
   postgres:
     image: postgres:17
     container_name: postgres
@@ -11,11 +10,12 @@ services:
       - pgdata:/var/lib/postgresql/data
   nextjs-app:
     image: conradkuklinsky/crossword-nextjs-{{tier}}:{{sha}}
-    restart: always
-
+    container_name: nextjs
+    restart: unless-stopped
   nginx:
     image: conradkuklinsky/crossword-nginx-{{tier}}:{{sha}}
-    restart: always
+    container_name: nginx
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
