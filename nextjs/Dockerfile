@@ -21,7 +21,7 @@ ENV AWS_REGION=${AWS_REGION}
 
 # Install AWS CLI, jq, and Atlas
 RUN apk add --no-cache aws-cli jq
-RUN curl -sSf https://atlasgo.sh | sh
+RUN curl -sSf https://atlasgo.sh | sh -s -- -b /usr/local/bin
 
 WORKDIR /app
 
