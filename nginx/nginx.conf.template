@@ -1,3 +1,9 @@
+server {
+    listen 80 default_server;
+    server_name _; # Matches any hostname
+    return 444; # Closes the connection immediately without a response
+}
+
 # Redirects www to the main domain
 server {
     listen 80;
