@@ -65,5 +65,5 @@ if __name__ == '__main__':
         quit()
     print(f'Deploying {sys.argv[1]}')
     docker_compose_replacements = {'tier' : sys.argv[1], 'sha' : sys.argv[2]}
-    ec2_ip = '98.82.151.44' if sys.argv[1] == 'prod' else '54.158.16.33'
+    ec2_ip = '98.82.151.44' if sys.argv[1] == 'prod' else '34.218.130.248'
     deploy(ec2_ip, docker_compose_replacements)

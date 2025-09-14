@@ -2,8 +2,8 @@
 set -e
 
 # --- Configuration ---
-SECRET_NAME="my-app/database-url"
-AWS_REGION="us-west-2" # Change to your AWS region
+SECRET_NAME="crossword-postgres"
+AWS_REGION="${1}"
 
 echo "Fetching database credentials from AWS Secrets Manager..."
 
@@ -33,5 +33,6 @@ atlas schema apply \
 
 echo "Schema is up to date."
 
-# Execute the main command
+# Shift the first argument (AWS_REGION) and execute the remaining command
+shift
 exec "$@"

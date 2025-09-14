@@ -1,3 +1,10 @@
+associate instance with a static ip (elasticip)
+point DNS to the ip
+grant flexible (HTTP) access in the DNS
+
+grant the instance an IAM role with ASM access
+create postgres secret
+
 sudo yum update -y
 sudo yum install docker -y
 sudo systemctl start docker
@@ -9,6 +16,7 @@ sudo chmod +x /usr/local/bin/docker-compose
 
 sudo docker volume create pgdata
 
+after deploying for the first time:
 manually setup postgres user/pass (use secret in ASM) and database:
     CREATE DATABASE crossword_db;
     CREATE USER <user> WITH PASSWORD '<password>';

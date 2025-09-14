@@ -34,14 +34,26 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build and push the nextjs image
-      - name: Build and push nextjs
+      # Build and push the nextjs images (dev + prod)
+      - name: Build and push nextjs (dev)
         uses: docker/build-push-action@v4
         with:
           context: ./nextjs
           file: ./nextjs/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nextjs:${{ env.COMMIT_HASH }}
+          build-args: |
+            AWS_REGION=us-west-2
+          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nextjs-dev:${{ env.COMMIT_HASH }}
+
+      - name: Build and push nextjs (prod)
+        uses: docker/build-push-action@v4
+        with:
+          context: ./nextjs
+          file: ./nextjs/Dockerfile
+          push: true
+          build-args: |
+            AWS_REGION=us-east-1
+          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nextjs-prod:${{ env.COMMIT_HASH }}
 
       # Build and push the nginx images (dev + prod)
       - name: Build and push nginx (dev)
