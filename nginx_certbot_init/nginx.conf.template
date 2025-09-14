@@ -1,16 +1,14 @@
 # The configuration file for the nginx_certbot_init container.
 # Listens on port 80 and serves acme challenge files for the SSL certificate process
 
-http {
-    server {
-        listen 80;
-        server_name ${SERVER_NAME} www.${SERVER_NAME};
+server {
+    listen 80;
+    server_name ${SERVER_NAME} www.${SERVER_NAME};
 
-        # The certificate process requires serving challenge files at http://hostname/.well-known/acme-challenge/.
-        # Certbot is set up to store challenge files on the webroot volume, which we've mounted to /var/www/certbot.
-        # So respond to /.well-known/acme-challenge/ with the challenge files
-        location /.well-known/acme-challenge/ {
-            root /var/www/certbot;
-        }
+    # The certificate process requires serving challenge files at http://hostname/.well-known/acme-challenge/.
+    # Certbot is set up to store challenge files on the webroot volume, which we've mounted to /var/www/certbot.
+    # So respond to /.well-known/acme-challenge/ with the challenge files
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
     }
 }

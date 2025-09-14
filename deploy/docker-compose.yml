@@ -24,7 +24,7 @@ services:
       - nextjs-app
 
   nginx_certbot_init:
-    image: conradkuklinsky/nginx_certbot_init:{{sha}}
+    image: conradkuklinsky/crossword-nginx-certbot-init-{{tier}}:{{sha}}
     container_name: nginx_certbot_init
     # Set a profile so this service doesn't get run by default with docker-compose up
     profiles:
