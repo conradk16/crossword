@@ -3,17 +3,19 @@ set -e
 
 # --- Configuration ---
 SECRET_NAME="crossword-postgres"
-AWS_REGION="${1}"
 
-echo "Fetching database credentials from AWS Secrets Manager..."
+# Read the region from the environment variable
+: "${AWS_REGION:?AWS_REGION environment variable not set or empty}"
+
+echo "Fetching database credentials from AWS Secrets Manager in region: ${AWS_REGION}..."
 
 # Fetch the secret from AWS and parse it with jq
-SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id $SECRET_NAME --region $AWS_REGION --query SecretString --output text)
-DB_USER=$(echo $SECRET_JSON | jq -r .username)
-DB_PASSWORD=$(echo $SECRET_JSON | jq -r .password)
-DB_HOST=$(echo $SECRET_JSON | jq -r .host)
-DB_PORT=$(echo $SECRET_JSON | jq -r .port)
-DB_NAME=$(echo $SECRET_JSON | jq -r .dbname)
+SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "${SECRET_NAME}" --region "${AWS_REGION}" --query SecretString --output text)
+DB_USER=$(echo "${SECRET_JSON}" | jq -r .username)
+DB_PASSWORD=$(echo "${SECRET_JSON}" | jq -r .password)
+DB_HOST=$(echo "${SECRET_JSON}" | jq -r .host)
+DB_PORT=$(echo "${SECRET_JSON}" | jq -r .port)
+DB_NAME=$(echo "${SECRET_JSON}" | jq -r .dbname)
 
 # Construct and export the DATABASE_URL
 export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
@@ -33,6 +35,4 @@ atlas schema apply \
 
 echo "Schema is up to date."
 
-# Shift the first argument (AWS_REGION) and execute the remaining command
-shift
 exec "$@"

@@ -16,7 +16,10 @@ FROM node:20-alpine
 
 ARG AWS_REGION
 
-# 1. Install AWS CLI, jq, and Atlas
+# Make aws region available to entrypoint.sh
+ENV AWS_REGION=${AWS_REGION}
+
+# Install AWS CLI, jq, and Atlas
 RUN apk add --no-cache aws-cli jq
 RUN curl -sSf https://atlasgo.sh | sh
 
@@ -38,5 +41,6 @@ COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 
-ENTRYPOINT ["/app/entrypoint.sh", "${AWS_REGION}"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+
 CMD ["npm", "start"]
