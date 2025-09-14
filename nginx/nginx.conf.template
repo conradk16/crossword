@@ -1,36 +1,36 @@
-server {
-    listen 80 default_server;
-    server_name _; # Matches any hostname
-    return 444; # Closes the connection immediately without a response
-}
+# server {
+#    listen 80 default_server;
+#    server_name _; # Matches any hostname
+#    return 444; # Closes the connection immediately without a response
+# }
 
-# Listens for www on 80 and 443 and redirects to main URL
-server {
-    listen 80;
-    listen 443 ssl;
-    server_name www.${SERVER_NAME};
+# # Listens for www on 80 and 443 and redirects to main URL
+# server {
+#    listen 80;
+#    listen 443 ssl;
+#     server_name www.${SERVER_NAME};
 
-    ssl_certificate /etc/letsencrypt/live/${SERVER_NAME}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${SERVER_NAME}/privkey.pem;
+#     ssl_certificate /etc/letsencrypt/live/${SERVER_NAME}/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/${SERVER_NAME}/privkey.pem;
     
-    location / {
-        return 301 https://${SERVER_NAME}$request_uri;
-    }
-}
+#     location / {
+#         return 301 https://${SERVER_NAME}$request_uri;
+#     }
+# }
 
-# Listens on port 80. Process ACME challenge requests but redirect all other traffic to https
-server {
-    listen 80;
-    server_name ${SERVER_NAME};
+# # Listens on port 80. Process ACME challenge requests but redirect all other traffic to https
+# server {
+#     listen 80;
+#     server_name ${SERVER_NAME};
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
+#     location /.well-known/acme-challenge/ {
+#         root /var/www/certbot;
+#     }
 
-    location / {
-        return 301 https://${SERVER_NAME}$request_uri;
-    }
-}
+#     location / {
+#         return 301 https://${SERVER_NAME}$request_uri;
+#     }
+# }
 
 # Handles https traffic for the main domain
 server {
@@ -44,12 +44,12 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/${SERVER_NAME}/privkey.pem;
 
     # Add headers for security
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-    add_header Cross-Origin-Embedder-Policy "require-corp" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "DENY" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    #add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    #add_header Cross-Origin-Embedder-Policy "require-corp" always;
+    #add_header X-Content-Type-Options "nosniff" always;
+    #add_header X-Frame-Options "DENY" always;
+    #add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    #add_header Cross-Origin-Opener-Policy "same-origin" always;
 
     location / {
         proxy_pass http://nextjs-app:3000;
