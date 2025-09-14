@@ -1,3 +1,11 @@
+# Redirects www to the main domain
+server {
+    listen 80;
+    server_name www.${SERVER_NAME};
+    return 301 http://${SERVER_NAME}$request_uri;
+}
+
+# Handles traffic for the main domain
 server {
     listen 80;
     server_name ${SERVER_NAME};
