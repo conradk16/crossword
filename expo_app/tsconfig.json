@@ -1,0 +1,18 @@
+{
+  "extends": "@crossword/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-native",
+
+    /* This baseUrl is for resolving paths within the native app */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

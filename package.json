@@ -1,0 +1,9 @@
+{
+    "name": "crossword",
+    "private": true,
+    "workspaces": [
+      "nextjs",
+      "expo_app",
+      "packages/*"
+    ]
+  }

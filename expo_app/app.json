@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "crossword_expo_app",
-    "slug": "crossword_expo_app",
+    "name": "expo_app",
+    "slug": "expo_app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
