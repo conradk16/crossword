@@ -1,49 +1,48 @@
+# intended to be run from monorepo root
+
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json first to leverage Docker's layer caching.
-# This way, 'npm install' only runs again if these files change.
 COPY package.json ./
-COPY package-lock.json ./
-RUN npm install
+COPY nextjs/package.json ./nextjs/
 
-COPY . .
+RUN npm install --workspace=nextjs
 
-RUN npm run build
+COPY nextjs/ ./nextjs/
+COPY tsconfig.json ./
 
+RUN npm run build --workspace=nextjs
+
+#  Final Stage
 FROM node:20-alpine
 
 ARG AWS_REGION
-
-# Make aws region available to entrypoint.sh
 ENV AWS_REGION=${AWS_REGION}
 
-# Install AWS CLI, jq, and Atlas
+# Install dependencies
 RUN apk add --no-cache aws-cli jq curl && \
     set -o pipefail && \
     curl -sSf https://atlasgo.sh | sh -s -- -b /usr/local/bin && \
-    echo "Atlas installation complete. Verifying..." && \
     atlas version
 
 WORKDIR /app
 
-# Copy Atlas schema file and the entrypoint script
-COPY db/schema.pg.hcl /app/db/schema.pg.hcl
-COPY entrypoint.sh /app/entrypoint.sh
+COPY nextjs/db/schema.pg.hcl /app/db/schema.pg.hcl
+COPY nextjs/entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 
 COPY package.json ./
-COPY package-lock.json ./
+COPY nextjs/package.json ./nextjs/
 
-RUN npm install --production
+RUN npm install --workspace=nextjs --only=production
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/nextjs/.next ./nextjs/.next
+COPY --from=builder /app/nextjs/public ./nextjs/public
 
 EXPOSE 3000
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-CMD ["npm", "start"]
+CMD ["npm", "start", "--workspace=nextjs"]

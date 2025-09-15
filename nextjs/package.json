@@ -10,8 +10,6 @@
     "db:apply": "atlas schema apply -u \"postgres://local_pg_user:local_pg_password@localhost:5432/crossword_db?sslmode=disable\" -f file://db/schema.pg.hcl --auto-approve"
   },
   "dependencies": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
     "next": "15.5.2"
   },
   "devDependencies": {
