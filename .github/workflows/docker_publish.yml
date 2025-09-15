@@ -38,7 +38,7 @@ jobs:
       - name: Build and push nextjs (dev)
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./nextjs
           file: ./nextjs/Dockerfile
           push: true
           build-args: |
@@ -48,7 +48,7 @@ jobs:
       - name: Build and push nextjs (prod)
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./nextjs
           file: ./nextjs/Dockerfile
           push: true
           build-args: |
