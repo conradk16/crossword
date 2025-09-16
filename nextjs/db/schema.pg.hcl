@@ -34,8 +34,11 @@ table "otp_codes" {
   }
 
   index "idx_otp_codes_email" {
-    columns     = [column.email]
-    unique = true
+    columns = [column.email]
+  }
+  // Composite index to efficiently fetch recent codes for an email.
+  index "idx_otp_codes_email_created_at" {
+    columns = [column.email, column.created_at]
   }
 }
 
