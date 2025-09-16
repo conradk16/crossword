@@ -19,6 +19,7 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
   params?: unknown[]
 ): Promise<{ rows: T[] }> {
   const result = params
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ? await pool.query<T>(text, params as any[])
     : await pool.query<T>(text);
   return { rows: result.rows };
