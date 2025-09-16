@@ -1,23 +1,24 @@
 import { Pool, PoolClient, type QueryResultRow } from 'pg';
 
-// Expect DATABASE_URL like: postgres://user:pass@host:port/dbname
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is not defined.');
-}
-
-// Reuse pool across hot reloads in dev
+// Reuse pool across hot reloads in dev/build
 const globalForPool = globalThis as unknown as { _pgPool?: Pool };
 
-export const pool: Pool = globalForPool._pgPool || new Pool({ connectionString });
-if (!globalForPool._pgPool) {
-  globalForPool._pgPool = pool;
+export function getPool(): Pool {
+  if (!globalForPool._pgPool) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error('DATABASE_URL environment variable is not defined.');
+    }
+    globalForPool._pgPool = new Pool({ connectionString });
+  }
+  return globalForPool._pgPool as Pool;
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: unknown[]
 ): Promise<{ rows: T[] }> {
+  const pool = getPool();
   const result = params
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ? await pool.query<T>(text, params as any[])
@@ -26,7 +27,7 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
 }
 
 export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query('BEGIN');
     const result = await fn(client);
