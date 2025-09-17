@@ -116,6 +116,13 @@ table "users" {
     columns     = [column.username]
     unique = true
   }
+
+  // Case-insensitive prefix search support for usernames
+  index "idx_users_lower_username" {
+    on {
+      expr = "lower(username)"
+    }
+  }
 }
 
 // Stores the current session token (hashed) per user. One active token per user.
@@ -150,6 +157,112 @@ table "user_sessions" {
   // Maintain referential integrity to users
   foreign_key "user_sessions_user_id_fkey" {
     columns     = [column.user_id]
+    ref_columns = [table.users.column.user_id]
+    on_update   = NO_ACTION
+    on_delete   = CASCADE
+  }
+}
+
+// Stores directed friendship edges for quick lookup of a user's friends.
+// For two friends u1 and u2, we store two rows: (u1 -> u2) and (u2 -> u1).
+table "friends" {
+  schema = schema.public
+
+  column "user_id" {
+    type = uuid
+    null = false
+  }
+  column "friend_user_id" {
+    type = uuid
+    null = false
+  }
+  column "created_at" {
+    type    = timestamptz
+    null    = false
+    default = sql("now()")
+  }
+
+  // Prevent duplicate edges
+  primary_key {
+    columns = [column.user_id, column.friend_user_id]
+  }
+
+  // Fast lookup of a user's friends
+  index "idx_friends_user_id" {
+    columns = [column.user_id]
+  }
+
+  // Maintain referential integrity to users
+  foreign_key "friends_user_id_fkey" {
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.user_id]
+    on_update   = NO_ACTION
+    on_delete   = CASCADE
+  }
+  foreign_key "friends_friend_user_id_fkey" {
+    columns     = [column.friend_user_id]
+    ref_columns = [table.users.column.user_id]
+    on_update   = NO_ACTION
+    on_delete   = CASCADE
+  }
+}
+
+// Tracks friend requests between users and their status.
+table "friend_requests" {
+  schema = schema.public
+
+  column "id" {
+    type = serial
+    null = false
+  }
+  column "requester_user_id" {
+    type = uuid
+    null = false
+  }
+  column "recipient_user_id" {
+    type = uuid
+    null = false
+  }
+  // One of: 'pending', 'accepted', 'rejected'
+  column "status" {
+    type    = text
+    null    = false
+    default = "pending"
+  }
+  column "created_at" {
+    type    = timestamptz
+    null    = false
+    default = sql("now()")
+  }
+  column "responded_at" {
+    type = timestamptz
+    null = true
+  }
+
+  primary_key {
+    columns = [column.id]
+  }
+
+  // Prevent multiple rows for the same requester->recipient pair
+  index "uq_friend_requests_pair" {
+    columns = [column.requester_user_id, column.recipient_user_id]
+    unique  = true
+  }
+
+  // For quick retrieval of friend requests
+  index "idx_friend_requests_recipient_status_created_at" {
+    columns = [column.recipient_user_id, column.status, column.created_at]
+  }
+
+  // Maintain referential integrity
+  foreign_key "friend_requests_requester_fkey" {
+    columns     = [column.requester_user_id]
+    ref_columns = [table.users.column.user_id]
+    on_update   = NO_ACTION
+    on_delete   = CASCADE
+  }
+  foreign_key "friend_requests_recipient_fkey" {
+    columns     = [column.recipient_user_id]
     ref_columns = [table.users.column.user_id]
     on_update   = NO_ACTION
     on_delete   = CASCADE
