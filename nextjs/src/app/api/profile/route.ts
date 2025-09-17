@@ -33,6 +33,21 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = (await req.json().catch(() => ({}))) as PatchBody;
+    // Validate username if provided
+    if (Object.prototype.hasOwnProperty.call(body, 'username')) {
+      const username = body.username;
+      if (typeof username === 'string') {
+        if (username.length === 0) {
+          return NextResponse.json({ error: 'Username cannot be empty' }, { status: 400 });
+        }
+        if (username.length > 20) {
+          return NextResponse.json({ error: 'Username must be at most 20 characters' }, { status: 400 });
+        }
+        if (!/^[A-Za-z0-9]+$/.test(username)) {
+          return NextResponse.json({ error: 'Username can only contain letters and numbers' }, { status: 400 });
+        }
+      }
+    }
     const fields: string[] = [];
     const values: unknown[] = [];
 
