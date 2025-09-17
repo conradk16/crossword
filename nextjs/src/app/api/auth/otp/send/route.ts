@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import crypto from 'crypto';
 import { sendOtpEmail } from '@/lib/email';
+import { hashOtp } from '@/lib/auth/utils';
 
 // Configurable constants
 const OTP_LENGTH = 6;
@@ -23,11 +24,7 @@ function generateOtp(): string {
   return num.toString().padStart(OTP_LENGTH, '0');
 }
 
-function hashOtp(code: string, email: string): string {
-  const h = crypto.createHash('sha256');
-  h.update(code + '|' + email);
-  return h.digest('hex');
-}
+// hashOtp is imported from '@/lib/auth/utils'
 
 export async function POST(req: NextRequest) {
   try {
