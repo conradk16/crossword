@@ -87,6 +87,10 @@ table "users" {
     type    = text
     null    = true
   }
+  column "username" {
+    type    = text
+    null    = true
+  }
   column "created_at" {
     type    = timestamptz
     null    = false
@@ -105,6 +109,11 @@ table "users" {
   // Ensures no two users can have the same email address.
   index "users_email_key" {
     columns     = [column.email]
+    unique = true
+  }
+  // Ensures usernames are unique when set
+  index "users_username_key" {
+    columns     = [column.username]
     unique = true
   }
 }
