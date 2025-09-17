@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title>Conrad's Crossword</title>
+  <desc>Simple crossword grid favicon</desc>
+  <defs>
+    <style>
+      .grid { fill: #ffffff; stroke: #111111; stroke-width: 8; }
+      .block { fill: #111111; }
+    </style>
+  </defs>
+  <!-- Background -->
+  <rect x="8" y="8" width="240" height="240" rx="24" ry="24" fill="#ffffff" stroke="#111111" stroke-width="8"/>
+  <!-- 4x4 grid -->
+  <!-- Cells are 56x56 with 8px gutters (approx) inside the padded rect -->
+  <!-- Draw light grid rectangles -->
+  <g>
+    <!-- Row 1 -->
+    <rect class="grid" x="24" y="24" width="56" height="56"/>
+    <rect class="grid" x="88" y="24" width="56" height="56"/>
+    <rect class="grid" x="152" y="24" width="56" height="56"/>
+    <rect class="grid" x="216" y="24" width="56" height="56" transform="translate(0 0)" visibility="hidden"/>
+    <!-- Row 2 -->
+    <rect class="grid" x="24" y="88" width="56" height="56"/>
+    <rect class="grid" x="88" y="88" width="56" height="56"/>
+    <rect class="grid" x="152" y="88" width="56" height="56"/>
+    <!-- Row 3 -->
+    <rect class="grid" x="24" y="152" width="56" height="56"/>
+    <rect class="grid" x="88" y="152" width="56" height="56"/>
+    <rect class="grid" x="152" y="152" width="56" height="56"/>
+    <!-- Row 4 -->
+    <rect class="grid" x="24" y="216" width="56" height="56" transform="translate(0 0)" visibility="hidden"/>
+    <rect class="grid" x="88" y="216" width="56" height="56" transform="translate(0 0)" visibility="hidden"/>
+    <rect class="grid" x="152" y="216" width="56" height="56" transform="translate(0 0)" visibility="hidden"/>
+  </g>
+
+  <!-- Add some black blocks to suggest crossword pattern -->
+  <g>
+    <!-- Top row: cells 2 and 4 black; we'll just fill specific squares -->
+    <rect class="block" x="88" y="24" width="56" height="56"/>
+    <rect class="block" x="152" y="88" width="56" height="56"/>
+    <rect class="block" x="24" y="152" width="56" height="56"/>
+    <rect class="block" x="88" y="152" width="56" height="56"/>
+  </g>
+
+  <!-- Outer grid lines to emphasize crossword look -->
+  <g stroke="#111111" stroke-width="8" fill="none">
+    <path d="M24 24 H208"/>
+    <path d="M24 88 H208"/>
+    <path d="M24 152 H208"/>
+    <path d="M24 24 V208"/>
+    <path d="M88 24 V208"/>
+    <path d="M152 24 V208"/>
+    <path d="M208 24 V208"/>
+    <path d="M24 208 H208"/>
+  </g>
+</svg>
+
+

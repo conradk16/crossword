@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query, withTransaction } from '@/lib/db';
+import { query } from '@/lib/db';
 import { requireAuthUser } from '@/lib/auth/session';
 
 export async function GET(req: NextRequest) {
