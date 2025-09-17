@@ -268,3 +268,58 @@ table "friend_requests" {
     on_delete   = CASCADE
   }
 }
+
+// Stores users' daily puzzle completion times with Pacific-day uniqueness
+table "puzzle_completions" {
+  schema = schema.public
+
+  column "id" {
+    type = serial
+    null = false
+  }
+  column "user_id" {
+    type = uuid
+    null = false
+  }
+  // Date of the puzzle day in America/Los_Angeles time
+  column "puzzle_date" {
+    type = date
+    null = false
+  }
+  // Completion duration in milliseconds
+  column "time_ms" {
+    type = integer
+    null = false
+  }
+  column "created_at" {
+    type    = timestamptz
+    null    = false
+    default = sql("now()")
+  }
+
+  primary_key {
+    columns = [column.id]
+  }
+
+  // Ensure a single completion per user per Pacific calendar day
+  index "uq_puzzle_completions_user_date" {
+    columns = [column.user_id, column.puzzle_date]
+    unique  = true
+  }
+
+  // Helpful lookups
+  index "idx_puzzle_completions_user" {
+    columns = [column.user_id]
+  }
+  index "idx_puzzle_completions_date" {
+    columns = [column.puzzle_date]
+  }
+
+  // Maintain referential integrity to users
+  foreign_key "puzzle_completions_user_id_fkey" {
+    columns     = [column.user_id]
+    ref_columns = [table.users.column.user_id]
+    on_update   = NO_ACTION
+    on_delete   = CASCADE
+  }
+}
