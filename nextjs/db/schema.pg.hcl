@@ -269,6 +269,34 @@ table "friend_requests" {
   }
 }
 
+// Stores one crossword puzzle per Pacific calendar day
+table "puzzles" {
+  schema = schema.public
+
+  // Date of the puzzle day in America/Los_Angeles time
+  column "puzzle_date" {
+    type = date
+    null = false
+  }
+
+  // Puzzle payload (grid + clues) without duplicating the date inside JSON
+  column "data" {
+    type = jsonb
+    null = false
+  }
+
+  column "created_at" {
+    type    = timestamptz
+    null    = false
+    default = sql("now()")
+  }
+
+  // Enforce exactly one puzzle per date
+  primary_key {
+    columns = [column.puzzle_date]
+  }
+}
+
 // Stores users' daily puzzle completion times with Pacific-day uniqueness
 table "puzzle_completions" {
   schema = schema.public
