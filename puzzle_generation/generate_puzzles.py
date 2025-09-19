@@ -480,19 +480,22 @@ if __name__ == '__main__':
     today_pacific = datetime.now(tz=pacific).date()
 
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description='Generate crossword puzzles starting today.')
+    parser = argparse.ArgumentParser(description='Generate crossword puzzles (starts tomorrow by default).')
     parser.add_argument('days', type=int,
-                        help='Number of days to generate (starting today).')
+                        help='Number of days to generate (starting tomorrow unless --include-today).')
+    parser.add_argument('--include-today', action='store_true',
+                        help='Include today as the first generated date (default: disabled).')
     args = parser.parse_args()
     num_days: int = args.days
     if num_days < 1:
         num_days = 0
 
-    # Generate puzzles for the requested number of days (including today)
+    # Generate puzzles for the requested number of days
     out_path = os.path.join(base_dir, 'puzzles.jsonl')
     with open(out_path, 'w') as out_f:
-        for day_offset in range(num_days):
-            d = today_pacific + timedelta(days=day_offset)
+        start_date = today_pacific if args.include_today else (today_pacific + timedelta(days=1))
+        for day_index in range(num_days):
+            d = start_date + timedelta(days=day_index)
             weekday_name = d.strftime('%A')
             print(f"Generating {d.isoformat()} ({weekday_name})...")
             if weekday_name not in template_by_day:
