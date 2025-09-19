@@ -1,0 +1,4 @@
+{"puzzle_date":"2099-01-01","data":{"grid":[["S","A"],["M","E"]],"clues":[{"clue":"SA","direction":"across","row":0,"col":0,"length":2},{"clue":"ME","direction":"across","row":1,"col":0,"length":2},{"clue":"SM","direction":"down","row":0,"col":0,"length":2},{"clue":"AE","direction":"down","row":0,"col":1,"length":2}]}}
+{"puzzle_date":"2025-09-19","data":{"grid":[["N","O"],["D","E"]],"clues":[{"clue":"NO","direction":"across","row":0,"col":0,"length":2},{"clue":"DE","direction":"across","row":1,"col":0,"length":2},{"clue":"ND","direction":"down","row":0,"col":0,"length":2},{"clue":"OE","direction":"down","row":0,"col":1,"length":2}]}}
+
+

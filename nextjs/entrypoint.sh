@@ -26,6 +26,12 @@ RESEND_SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "${RESEND_S
 RESEND_KEY_VALUE=$(echo "${RESEND_SECRET_JSON}" | jq -r .key)
 export RESEND_KEY="${RESEND_KEY_VALUE}"
 
+echo "Fetching Crossword Admin key from AWS Secrets Manager..."
+ADMIN_SECRET_NAME="crossword_admin_key"
+ADMIN_SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "${ADMIN_SECRET_NAME}" --region "${AWS_REGION}" --query SecretString --output text)
+ADMIN_KEY_VALUE=$(echo "${ADMIN_SECRET_JSON}" | jq -r .key)
+export CROSSWORD_ADMIN_KEY="${ADMIN_KEY_VALUE}"
+
 echo "Waiting for database to be ready..."
 until atlas schema apply -u "$DATABASE_URL" -f file:///app/db/schema.pg.hcl --dry-run; do
   >&2 echo "Postgres is unavailable - sleeping"
