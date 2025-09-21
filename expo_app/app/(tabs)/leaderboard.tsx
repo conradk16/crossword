@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { HEADER_BOTTOM_MARGIN, HEADER_TOP_MARGIN, SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 import { formatTime } from '@/utils/crosswordUtils';
-import { isAuthenticated as isAuthenticatedAuth, getAuthToken } from '@/services/auth';
+import { useAuth } from '@/services/AuthContext';
 
 type LeaderboardEntry = {
   rank: number;
@@ -21,11 +21,10 @@ export default function LeaderboardScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [date, setDate] = useState<string>('');
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
+  const { token } = useAuth();
 
   const loadLeaderboard = useCallback(async () => {
-    const isAuth = isAuthenticatedAuth();
-    const token = await getAuthToken();
-    if (!isAuth || !token) {
+    if (!token) {
       setLeaderboard([]);
       setDate('');
       setCurrentUsername(null);
@@ -60,7 +59,7 @@ export default function LeaderboardScreen() {
         completionTime: r.timeMs != null ? Math.floor(r.timeMs / 1000) : null,
       })));
     } catch {}
-  }, []);
+  }, [token]);
 
   // Refresh leaderboard when the tab is focused
   useFocusEffect(
@@ -71,8 +70,7 @@ export default function LeaderboardScreen() {
   );
 
   // Show login prompt if not authenticated
-  const isAuthenticated = isAuthenticatedAuth();
-  if (!isAuthenticated) {
+  if (!token) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centered}>

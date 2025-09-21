@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Audio } from 'expo-av';
 import { loadPuzzleState, savePuzzleState } from '@/services/storage';
-import { getAuthToken } from '@/services/auth';
+import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -42,6 +42,7 @@ export default function CrosswordScreen() {
   const [stickyKeyboardHeight, setStickyKeyboardHeight] = useState(0);
   const loadRequestIdRef = useRef(0);
   const puzzleDateRef = useRef<string | null>(null);
+  const { token } = useAuth();
   
 
   // Function to play bell sound when puzzle is completed
@@ -245,15 +246,15 @@ export default function CrosswordScreen() {
         savePuzzleState(puzzleData.date, { completionSeconds });
       }
       try {
-        const token = await getAuthToken();
-        if (!token) {
+        const t = token;
+        if (!t) {
           return; // Can't sync without auth
         }
         await fetch(withBaseUrl('/api/puzzles/daily/complete'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${t}`,
           },
           body: JSON.stringify({
             timeMs: completionSeconds * 1000,
@@ -263,7 +264,7 @@ export default function CrosswordScreen() {
         console.log('Failed to sync completion time:', error);
       }
     }
-  }, [puzzleData]);
+  }, [puzzleData, token]);
 
   const advanceAfterInput = useCallback((newGrid: CrosswordCell[][], selectedRow: number, selectedCol: number) => {
     if (!gameState.currentWord || !puzzleData) return;
@@ -418,7 +419,7 @@ export default function CrosswordScreen() {
       // Fallback: keep selection
       updateGridHighlighting(newGrid, selectedRow, selectedCol, gameState.currentWord);
     }
-  }, [gameState, puzzleData, isPuzzleSolved, updateGridHighlighting, playBellSound]);
+  }, [gameState, puzzleData, isPuzzleSolved, updateGridHighlighting, playBellSound, persistProgress]);
 
   const handleKeyPress = useCallback((key: string) => {
     if (!gameState.currentWord || !puzzleData) return;

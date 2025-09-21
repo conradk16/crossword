@@ -7,7 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
-import { isAuthenticated as isAuthenticatedAuth, getAuthToken } from '@/services/auth';
+import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
 
 type User = { id: string; username: string };
@@ -25,11 +25,10 @@ export default function FriendsScreen() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
+  const { token } = useAuth();
 
   const loadFriends = useCallback(async () => {
-    const isAuth = isAuthenticatedAuth();
-    const token = await getAuthToken();
-    if (!isAuth || !token) {
+    if (!token) {
       setFriends([]);
       setFriendRequests([]);
       setCurrentUsername(null);
@@ -57,7 +56,7 @@ export default function FriendsScreen() {
         fromUser: { id: u, username: u },
       })));
     } catch {}
-  }, []);
+  }, [token]);
 
   // Refresh friends data and re-render when the tab is focused
   useFocusEffect(
@@ -78,7 +77,6 @@ export default function FriendsScreen() {
         return;
       }
       
-      const token = await getAuthToken();
       if (!token) return;
       
       const myToken = ++searchTokenRef.current;
@@ -102,7 +100,7 @@ export default function FriendsScreen() {
     } finally {
       setSearchLoading(false);
     }
-  }, [query]);
+  }, [query, token]);
 
   // Auto-search as user types (debounced)
   useEffect(() => {
@@ -123,7 +121,6 @@ export default function FriendsScreen() {
     Keyboard.dismiss();
     setError(null);
     
-    const token = await getAuthToken();
     if (!token) return;
     
     try {
@@ -151,13 +148,12 @@ export default function FriendsScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to send request');
     }
-  }, [onSearch, loadFriends]);
+  }, [onSearch, loadFriends, token]);
 
   const handleActOnRequest = useCallback(async (requestId: string, action: 'accept' | 'decline') => {
     Keyboard.dismiss();
     setError(null);
     
-    const token = await getAuthToken();
     if (!token) return;
     
     try {
@@ -178,12 +174,10 @@ export default function FriendsScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update request');
     }
-  }, [loadFriends]);
-
-  const isAuthenticated = isAuthenticatedAuth();
+  }, [loadFriends, token]);
 
   // Show login prompt if not authenticated
-  if (!isAuthenticated) {
+  if (!token) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centered}>

@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { setAuthToken, clearAuthToken, getAuthToken } from '@/services/auth';
+import { useAuth } from '@/services/AuthContext';
 import { getAuthHeaders } from '@/utils/authUtils';
 import { withBaseUrl } from '@/constants/Api';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
@@ -35,6 +35,8 @@ export default function SettingsScreen() {
   const [usernameLoading, setUsernameLoading] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
+  const { token, setAuthToken, clearAuthToken } = useAuth();
+
   const isEmailInvalid = useMemo(() => {
     const trimmed = email.trim();
     if (trimmed.length === 0) return false;
@@ -49,7 +51,6 @@ export default function SettingsScreen() {
   const refreshUserProfile = useCallback(async () => {
     setMeError(null);
     try {
-      const token = await getAuthToken();
       const headers = getAuthHeaders(token);
       const r = await fetch(withBaseUrl('/api/profile'), { headers });
       if (r.ok) {
@@ -63,7 +64,7 @@ export default function SettingsScreen() {
     } catch (e) {
       setMeError('Failed to load profile');
     }
-  }, []);
+  }, [token]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -71,8 +72,6 @@ export default function SettingsScreen() {
       return () => {};
     }, [refreshUserProfile])
   );
-
-  
 
   // Resend countdown timer (1-minute cooldown from last send)
   useEffect(() => {
@@ -161,8 +160,8 @@ export default function SettingsScreen() {
         }
         return;
       }
-      const token = json?.token as string;
-      if (token) await setAuthToken(token);
+      const t = json?.token as string;
+      if (t) await setAuthToken(t);
       await refreshUserProfile();
       setStep('enterEmail');
       setEmail('');
@@ -173,13 +172,12 @@ export default function SettingsScreen() {
     } finally {
       setSubmitLoading(false);
     }
-  }, [email, otp, refreshUserProfile]);
+  }, [email, otp, refreshUserProfile, setAuthToken]);
 
   const onLogout = useCallback(async () => {
     setSubmitError(null);
     try {
       setSubmitLoading(true);
-      const token = await getAuthToken();
       const headers = getAuthHeaders(token);
       await fetch(withBaseUrl('/api/auth/logout'), { method: 'POST', headers });
     } catch {}
@@ -197,12 +195,11 @@ export default function SettingsScreen() {
       setProfile(null);
       setSubmitLoading(false);
     }
-  }, [profile?.email]);
+  }, [profile?.email, token, clearAuthToken]);
 
   const checkUsernameAvailability = useCallback(async (username: string): Promise<boolean> => {
     if (!username.trim()) return true;
     try {
-      const token = await getAuthToken();
       const headers = getAuthHeaders(token);
       const response = await fetch(withBaseUrl(`/api/users/search?prefix=${encodeURIComponent(username)}`), {
         headers
@@ -214,7 +211,7 @@ export default function SettingsScreen() {
     } catch {
       return true; // Assume available if error
     }
-  }, []);
+  }, [token]);
 
   const saveUsername = useCallback(async () => {
     const trimmed = usernameInput.trim();
@@ -244,14 +241,13 @@ export default function SettingsScreen() {
       }
       
       // Update username
-      const token = await getAuthToken();
-      const headers = getAuthHeaders(token);
+      const headers = {
+        ...getAuthHeaders(token),
+        'Content-Type': 'application/json'
+      };
       const response = await fetch(withBaseUrl('/api/profile'), {
         method: 'PATCH',
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({ username: trimmed })
       });
       
@@ -269,7 +265,7 @@ export default function SettingsScreen() {
     } finally {
       setUsernameLoading(false);
     }
-  }, [usernameInput, checkUsernameAvailability, refreshUserProfile, profile?.username]);
+  }, [usernameInput, checkUsernameAvailability, refreshUserProfile, profile?.username, token]);
 
   const startEditingUsername = useCallback(() => {
     setUsernameInput(profile?.username || '');
@@ -412,9 +408,7 @@ export default function SettingsScreen() {
                         : `Incorrect code. Please be careful — ${otpAttemptsRemaining} attempt${otpAttemptsRemaining === 1 ? '' : 's'} remaining today.`}
                     </ThemedText>
                   ) : (
-                    submitError && (
-                      <ThemedText style={styles.inputError}>{submitError}</ThemedText>
-                    )
+                    <ThemedText style={styles.inputError}>{submitError}</ThemedText>
                   )}
                 </View>
                 <View style={styles.actionsRow}>
