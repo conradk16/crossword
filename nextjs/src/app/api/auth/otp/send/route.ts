@@ -38,10 +38,22 @@ export async function POST(req: NextRequest) {
     const startOfDay = new Date(now);
     startOfDay.setUTCHours(0,0,0,0);
 
-    // Count how many sent today
+    // Determine last successful login (session creation) for this email
+    const lastLoginRes = await query<OtpLatest>(
+      `SELECT us.created_at
+       FROM users u
+       JOIN user_sessions us ON us.user_id = u.user_id
+       WHERE u.email = $1`,
+      [email]
+    );
+    const lastLoginAtStr = lastLoginRes.rows[0]?.created_at;
+    const lastLoginAt = lastLoginAtStr ? new Date(lastLoginAtStr) : null;
+
+    // Only count OTP sends after the last successful login, and within today
+    const countWindowStart = lastLoginAt && lastLoginAt > startOfDay ? lastLoginAt : startOfDay;
     const countResult = await query<OtpRowCount>(
       `SELECT COUNT(*)::text as count FROM otp_codes WHERE email = $1 AND created_at >= $2`,
-      [email, startOfDay.toISOString()]
+      [email, countWindowStart.toISOString()]
     );
     const sentToday = parseInt(countResult.rows[0]?.count || '0', 10);
     if (sentToday >= MAX_PER_DAY) {
@@ -50,8 +62,8 @@ export async function POST(req: NextRequest) {
 
     // Get latest request to enforce 1 minute interval
     const latestResult = await query<OtpLatest>(
-      `SELECT created_at FROM otp_codes WHERE email = $1 ORDER BY created_at DESC LIMIT 1`,
-      [email]
+      `SELECT created_at FROM otp_codes WHERE email = $1 AND created_at >= $2 ORDER BY created_at DESC LIMIT 1`,
+      [email, (lastLoginAt ?? new Date(0)).toISOString()]
     );
     if (latestResult.rows.length) {
       const last = new Date(latestResult.rows[0].created_at).getTime();
