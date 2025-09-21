@@ -17,15 +17,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all directed friends of the current user with their username
-    // Then left join today's completion in Pacific time
+    // Build participants as: current user UNION their directed friends
+    // Then join to users and today's completion in Pacific time
     const { rows } = await query<LeaderboardRow>(
-      `SELECT u.username AS username, pc.time_ms AS time_ms
-       FROM friends f
-       JOIN users u ON u.user_id = f.friend_user_id
+      `WITH participants AS (
+         SELECT $1::uuid AS user_id
+         UNION
+         SELECT f.friend_user_id AS user_id
+         FROM friends f
+         WHERE f.user_id = $1
+       )
+       SELECT u.username AS username, pc.time_ms AS time_ms
+       FROM participants p
+       JOIN users u ON u.user_id = p.user_id
        LEFT JOIN puzzle_completions pc
          ON pc.user_id = u.user_id AND pc.puzzle_date = ${PACIFIC_TODAY_DATE_SQL}
-       WHERE f.user_id = $1 AND u.username IS NOT NULL
+       WHERE u.username IS NOT NULL
        ORDER BY (pc.time_ms IS NULL) ASC, pc.time_ms ASC, u.username ASC`,
       [user.user_id]
     );
