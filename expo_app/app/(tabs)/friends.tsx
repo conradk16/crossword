@@ -8,14 +8,13 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 import { 
-  subscribeToState, 
   getAuthState, 
-  getFriendsState,
-  refreshFriends
 } from '@/services/state';
 import { withBaseUrl } from '@/constants/Api';
 
 type User = { id: string; username: string };
+type Friend = { id: string; username: string };
+type FriendRequest = { requestId: string; fromUser: { id: string; username: string } };
 
 export default function FriendsScreen() {
   const [query, setQuery] = useState('');
@@ -24,27 +23,49 @@ export default function FriendsScreen() {
   const [lastSearchedQuery, setLastSearchedQuery] = useState('');
   const searchTokenRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
-  
-  // State change trigger for re-renders
-  const [, setStateVersion] = useState(0);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
+  const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
 
-  // Subscribe to state changes to trigger re-renders
-  useEffect(() => {
-    const unsubscribe = subscribeToState(() => {
-      setStateVersion(prev => prev + 1);
-    });
-    
-    return unsubscribe;
+  const loadFriends = useCallback(async () => {
+    const { isAuthenticated, token } = getAuthState();
+    if (!isAuthenticated || !token) {
+      setFriends([]);
+      setFriendRequests([]);
+      setCurrentUsername(null);
+      return;
+    }
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [friendsResponse, requestsResponse, profileResponse] = await Promise.all([
+        fetch(withBaseUrl('/api/friends'), { headers }),
+        fetch(withBaseUrl('/api/friends/requests'), { headers }),
+        fetch(withBaseUrl('/api/profile'), { headers }),
+      ]);
+
+      if (profileResponse.ok) {
+        const profile: { username?: string | null } = await profileResponse.json();
+        setCurrentUsername(profile?.username ?? null);
+      }
+
+      const friendsUsernames: string[] = friendsResponse.ok ? await friendsResponse.json() : [];
+      const incomingUsernames: string[] = requestsResponse.ok ? await requestsResponse.json() : [];
+
+      setFriends((friendsUsernames || []).map((u) => ({ id: u, username: u })));
+      setFriendRequests((incomingUsernames || []).map((u, i) => ({
+        requestId: `req-${i + 1}-${u}`,
+        fromUser: { id: u, username: u },
+      })));
+    } catch {}
   }, []);
 
-  // Refresh friends data when the tab is focused
+  // Refresh friends data and re-render when the tab is focused
   useFocusEffect(
     useCallback(() => {
-      const { isAuthenticated } = getAuthState();
-      if (isAuthenticated) {
-        refreshFriends();
-      }
-    }, [])
+      loadFriends();
+      return () => {};
+    }, [loadFriends])
   );
 
   const onSearch = useCallback(async () => {
@@ -119,14 +140,19 @@ export default function FriendsScreen() {
       if (!response.ok) {
         throw new Error('Failed to send request');
       }
+      setAddedUsernames((prev) => {
+        const next = new Set(prev);
+        next.add(recipientId);
+        return next;
+      });
       
       // Refresh friends data and search results
-      await refreshFriends();
+      await loadFriends();
       await onSearch();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to send request');
     }
-  }, [onSearch]);
+  }, [onSearch, loadFriends]);
 
   const handleActOnRequest = useCallback(async (requestId: string, action: 'accept' | 'decline') => {
     Keyboard.dismiss();
@@ -149,14 +175,13 @@ export default function FriendsScreen() {
         throw new Error('Failed to update request');
       }
       
-      await refreshFriends();
+      await loadFriends();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update request');
     }
-  }, []);
+  }, [loadFriends]);
 
   const { isAuthenticated } = getAuthState();
-  const { friends, friendRequests } = getFriendsState();
 
   // Show login prompt if not authenticated
   if (!isAuthenticated) {
@@ -164,6 +189,23 @@ export default function FriendsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centered}>
           <ThemedText style={styles.loginPromptTitle}>Log in or register to add friends!</ThemedText>
+          <Pressable 
+            style={styles.buttonPrimary} 
+            onPress={() => router.push('/settings')}
+          >
+            <ThemedText style={styles.buttonPrimaryText}>Go to Account</ThemedText>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show prompt to set username if missing (cannot send/receive requests without it)
+  if (currentUsername === null) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.centered}>
+          <ThemedText style={styles.loginPromptTitle}>Set a username to add friends!</ThemedText>
           <Pressable 
             style={styles.buttonPrimary} 
             onPress={() => router.push('/settings')}
@@ -243,8 +285,22 @@ export default function FriendsScreen() {
           renderItem={({ item }) => (
             <ThemedView style={styles.row}>
               <ThemedText style={styles.username}>{item.username}</ThemedText>
-              <Pressable style={styles.buttonSecondary} onPress={() => handleSendRequest(item.id)}>
-                <ThemedText style={styles.buttonSecondaryText}>Add</ThemedText>
+              <Pressable 
+                style={[
+                  styles.buttonSecondary,
+                  (item.username === currentUsername || addedUsernames.has(item.username)) && styles.buttonDisabled,
+                ]} 
+                onPress={() => handleSendRequest(item.id)}
+                disabled={item.username === currentUsername || addedUsernames.has(item.username)}
+              >
+                <ThemedText
+                  style={[
+                    styles.buttonSecondaryText,
+                    (item.username === currentUsername || addedUsernames.has(item.username)) && styles.buttonDisabledText,
+                  ]}
+                >
+                  Add
+                </ThemedText>
               </Pressable>
             </ThemedView>
           )}
@@ -369,6 +425,12 @@ const styles = StyleSheet.create({
   buttonSecondaryText: {
     color: '#007AFF',
     fontWeight: '700',
+  },
+  buttonDisabled: {
+    backgroundColor: '#e5e5ea',
+  },
+  buttonDisabledText: {
+    color: '#8E8E93',
   },
   buttonTertiary: {
     paddingHorizontal: 12,
