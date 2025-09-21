@@ -1,37 +1,71 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { HEADER_BOTTOM_MARGIN, HEADER_TOP_MARGIN, SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 import { formatTime } from '@/utils/crosswordUtils';
-import { subscribeToState, getLeaderboardState, getAuthState, refreshLeaderboard, type LeaderboardEntry } from '@/services/state';
+import { getAuthState, type LeaderboardEntry } from '@/services/state';
+import { withBaseUrl } from '@/constants/Api';
 
 export default function LeaderboardScreen() {
-  const [leaderboardState, setLeaderboardState] = useState(getLeaderboardState());
-  const [authState, setAuthState] = useState(getAuthState());
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [date, setDate] = useState<string>('');
+  const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
 
-  // Subscribe to state changes
-  useEffect(() => {
-    const unsubscribe = subscribeToState((state) => {
-      setLeaderboardState({
-        data: state.leaderboard,
-      });
-      setAuthState({
-        isAuthenticated: state.isAuthenticated,
-        token: state.authToken,
-      });
-    });
+  const loadLeaderboard = useCallback(async () => {
+    const { isAuthenticated, token } = getAuthState();
+    if (!isAuthenticated || !token) {
+      setLeaderboard([]);
+      setDate('');
+      setCurrentUsername(null);
+      return;
+    }
+    try {
+      const [leaderboardResponse, profileResponse] = await Promise.all([
+        fetch(withBaseUrl('/api/puzzles/daily/leaderboard'), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(withBaseUrl('/api/profile'), {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-    return unsubscribe;
+      if (profileResponse.ok) {
+        const profile: { username?: string | null } = await profileResponse.json();
+        setCurrentUsername(profile?.username ?? null);
+      }
+
+      if (!leaderboardResponse.ok) {
+        setLeaderboard([]);
+        setDate('');
+        return;
+      }
+      const rows: Array<{ username: string | null; timeMs: number | null }> = await leaderboardResponse.json();
+      const today = new Date().toISOString().split('T')[0];
+      setDate(today);
+      setLeaderboard((rows || []).map((r, idx) => ({
+        rank: idx + 1,
+        user: { id: r.username || `user-${idx + 1}`, username: r.username || '(unknown)' },
+        completionTime: r.timeMs ?? null,
+      })));
+    } catch {}
   }, []);
 
-  const leaderboard = useMemo(() => leaderboardState.data?.leaderboard ?? [], [leaderboardState.data]);
+  // Refresh leaderboard when the tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadLeaderboard();
+      return () => {};
+    }, [loadLeaderboard])
+  );
 
   // Show login prompt if not authenticated
-  if (authState.isAuthenticated === false) {
+  const { isAuthenticated } = getAuthState();
+  if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centered}>
@@ -47,11 +81,28 @@ export default function LeaderboardScreen() {
     );
   }
 
+  // Show prompt to set username if missing (cannot show leaderboard without it)
+  if (currentUsername === null) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.centered}>
+          <ThemedText style={styles.loginPromptTitle}>Set a username to see the leaderboard!</ThemedText>
+          <Pressable 
+            style={styles.buttonPrimary} 
+            onPress={() => router.push('/settings')}
+          >
+            <ThemedText style={styles.buttonPrimaryText}>Go to Account</ThemedText>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ThemedView style={styles.header}>
         <ThemedText style={styles.title}>Daily Leaderboard</ThemedText>
-        <ThemedText style={styles.subtitle}>{leaderboardState.data?.date ?? ''}</ThemedText>
+        <ThemedText style={styles.subtitle}>{date}</ThemedText>
       </ThemedView>
       <FlatList
         contentContainerStyle={styles.listContent}

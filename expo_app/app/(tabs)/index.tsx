@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Audio } from 'expo-av';
 import { loadPuzzleState, savePuzzleState } from '@/services/storage';
-import { getAuthToken, initializeState, sync } from '@/services/state';
+import { getAuthToken, initializeState } from '@/services/state';
 import { withBaseUrl } from '@/constants/Api';
 
 import { ThemedText } from '@/components/ThemedText';
