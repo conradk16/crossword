@@ -1,19 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View, Keyboard } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { subscribeToState, getAuthState, getProfileState, setAuthToken, clearAuthToken, refreshProfile, sync } from '@/services/state';
+import { setAuthToken, clearAuthToken, getAuthToken } from '@/services/state';
 import { getAuthHeaders } from '@/utils/authUtils';
+import { withBaseUrl } from '@/constants/Api';
+import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SettingsScreen() {
   const [meError, setMeError] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ id: string; email: string; username: string } | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Login/Register form state (single button; determine flow via API)
   const [email, setEmail] = useState('');
@@ -24,6 +25,9 @@ export default function SettingsScreen() {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [emailErrorVisible, setEmailErrorVisible] = useState(false);
+  const [otpAttemptsRemaining, setOtpAttemptsRemaining] = useState<number | null>(null);
+  const [otpLastSentByEmail, setOtpLastSentByEmail] = useState<Record<string, number>>({});
+  const [resendRemainingSeconds, setResendRemainingSeconds] = useState(60);
   
   // Username editing state
   const [editingUsername, setEditingUsername] = useState(false);
@@ -37,18 +41,35 @@ export default function SettingsScreen() {
     return !EMAIL_REGEX.test(trimmed);
   }, [email]);
 
+  const isValidOtp = useMemo(() => /^(\d){6}$/.test(otp.trim()), [otp]);
+
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+
   const refreshUserProfile = useCallback(async () => {
     setMeError(null);
     try {
-      await refreshProfile();
+      const token = await getAuthToken();
+      const headers = getAuthHeaders(token);
+      const r = await fetch(withBaseUrl('/api/profile'), { headers });
+      if (r.ok) {
+        const data: { user_id: string; email: string; name: string | null; username: string | null } = await r.json();
+        setProfile({ id: data.user_id, email: data.email, username: data.username || '' });
+      } else if (r.status === 401) {
+        setProfile(null);
+      } else {
+        throw new Error('Failed to load profile');
+      }
     } catch (e) {
       setMeError('Failed to load profile');
     }
   }, []);
 
-  useEffect(() => {
-    refreshUserProfile();
-  }, [refreshUserProfile]);
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshUserProfile();
+      return () => {};
+    }, [refreshUserProfile])
+  );
 
   // Auto-prompt for username if it's blank
   useEffect(() => {
@@ -58,32 +79,59 @@ export default function SettingsScreen() {
     }
   }, [profile, editingUsername]);
 
-  // Subscribe to state changes
+  // Resend countdown timer (1-minute cooldown from last send)
   useEffect(() => {
-    const unsubscribe = subscribeToState((state) => {
-      setIsAuthenticated(state.isAuthenticated);
-      setProfile(state.profile);
-      setProfileLoading(!state.profile && state.isAuthenticated);
-    });
-    return unsubscribe;
-  }, []);
+    if (step !== 'enterOtp') {
+      setResendRemainingSeconds(0);
+      return;
+    }
+    const lastSent = otpLastSentByEmail[normalizedEmail];
+    if (!lastSent) {
+      setResendRemainingSeconds(0);
+      return;
+    }
+    const update = () => {
+      const elapsedMs = Date.now() - lastSent;
+      const remainingMs = Math.max(0, 60000 - elapsedMs);
+      const remainingSeconds = Math.ceil(remainingMs / 1000);
+      setResendRemainingSeconds(remainingSeconds);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [step, normalizedEmail, otpLastSentByEmail]);
 
-  const sendOtp = useCallback(async () => {
+  const sendOtp = useCallback(async (forceResend: boolean = false) => {
     setSubmitError(null);
     setSubmitMessage(null);
-    if (isEmailInvalid) {
+    setOtpAttemptsRemaining(null);
+    const trimmed = email.trim();
+    const normalized = trimmed.toLowerCase();
+    if (trimmed.length === 0 || !EMAIL_REGEX.test(trimmed)) {
       setEmailErrorVisible(true);
+      return;
+    }
+    // If we've already sent an OTP to this email during this session, skip resending unless forced
+    if (otpLastSentByEmail[normalized] && !forceResend) {
+      setStep('enterOtp');
       return;
     }
     try {
       setSubmitLoading(true);
-      const r = await fetch('/api/auth/otp/send', {
+      const r = await fetch(withBaseUrl('/api/auth/otp/send'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: trimmed }),
       });
       const json = await r.json();
-      if (!r.ok) throw new Error(json?.error || 'Failed to send one-time passcode');
+      if (!r.ok) {
+        const errorText = json?.error || 'Failed to send one-time passcode';
+        if (r.status === 500 && /Failed to send email/i.test(errorText)) {
+          throw new Error('Unable to send email, please try again later');
+        }
+        throw new Error(errorText);
+      }
+      setOtpLastSentByEmail((prev) => ({ ...prev, [normalized]: Date.now() }));
       setSubmitMessage(json?.message || 'Check your email for the one-time passcode');
       setStep('enterOtp');
     } catch (e) {
@@ -91,7 +139,7 @@ export default function SettingsScreen() {
     } finally {
       setSubmitLoading(false);
     }
-  }, [email]);
+  }, [email, otpLastSentByEmail]);
 
   const completeAuth = useCallback(async () => {
     setSubmitError(null);
@@ -99,21 +147,32 @@ export default function SettingsScreen() {
     try {
       setSubmitLoading(true);
       const body = { email: email.trim(), otp: otp.trim() };
-      const r = await fetch('/api/auth/login', {
+      const r = await fetch(withBaseUrl('/api/auth/otp/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       const json = await r.json();
-      if (!r.ok) throw new Error(json?.error || 'Authentication failed');
+      if (!r.ok) {
+        const attempts = typeof json?.attemptsRemaining === 'number' ? json.attemptsRemaining as number : null;
+        setOtpAttemptsRemaining(attempts);
+        if (attempts === 0) {
+          setSubmitError('You have used all one-time passcode attempts for today. Please try again tomorrow.');
+        } else if (typeof attempts === 'number') {
+          const plural = attempts === 1 ? '' : 's';
+          setSubmitError(`Incorrect code. Please be careful — ${attempts} attempt${plural} remaining today.`);
+        } else {
+          setSubmitError(json?.error || 'Authentication failed');
+        }
+        return;
+      }
       const token = json?.token as string;
       if (token) await setAuthToken(token);
       await refreshUserProfile();
-      // Sync all data after successful login
-      await sync();
       setStep('enterEmail');
       setEmail('');
       setOtp('');
+      setOtpAttemptsRemaining(null);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Authentication failed');
     } finally {
@@ -125,36 +184,55 @@ export default function SettingsScreen() {
     setSubmitError(null);
     try {
       setSubmitLoading(true);
-      const { token } = getAuthState();
+      const token = await getAuthToken();
       const headers = getAuthHeaders(token);
-      await fetch('/api/auth/logout', { method: 'POST', headers });
+      await fetch(withBaseUrl('/api/auth/logout'), { method: 'POST', headers });
     } catch {}
     finally {
+      const emailKey = (profile?.email || '').trim().toLowerCase();
+      if (emailKey) {
+        setOtpLastSentByEmail((prev) => {
+          if (!prev[emailKey]) return prev;
+          const next = { ...prev };
+          delete next[emailKey];
+          return next;
+        });
+      }
       await clearAuthToken();
+      setProfile(null);
       setSubmitLoading(false);
     }
-  }, []);
+  }, [profile?.email]);
 
   const checkUsernameAvailability = useCallback(async (username: string): Promise<boolean> => {
     if (!username.trim()) return true;
     try {
-      const { token } = getAuthState();
+      const token = await getAuthToken();
       const headers = getAuthHeaders(token);
-      const response = await fetch(`/api/users/search?username=${encodeURIComponent(username)}`, {
+      const response = await fetch(withBaseUrl(`/api/users/search?prefix=${encodeURIComponent(username)}`), {
         headers
       });
       if (!response.ok) return true; // Assume available if can't check
       const data = await response.json();
       // If any users are returned with exact match, username is taken
-      return !data.users?.some((user: any) => user.username.toLowerCase() === username.toLowerCase());
+      return !(Array.isArray(data) ? data : []).some((u: string) => (u || '').toLowerCase() === username.toLowerCase());
     } catch {
       return true; // Assume available if error
     }
   }, []);
 
   const saveUsername = useCallback(async () => {
-    if (!usernameInput.trim()) {
+    const trimmed = usernameInput.trim();
+    if (!trimmed) {
       setUsernameError('Username cannot be empty');
+      return;
+    }
+
+    // If unchanged, close editor without API calls
+    if ((profile?.username || '') === trimmed) {
+      setEditingUsername(false);
+      setUsernameInput('');
+      setUsernameError(null);
       return;
     }
     
@@ -163,7 +241,7 @@ export default function SettingsScreen() {
     
     try {
       // Check if username is available
-      const isAvailable = await checkUsernameAvailability(usernameInput.trim());
+      const isAvailable = await checkUsernameAvailability(trimmed);
       if (!isAvailable) {
         setUsernameError('This username is already taken');
         setUsernameLoading(false);
@@ -171,15 +249,15 @@ export default function SettingsScreen() {
       }
       
       // Update username
-      const { token } = getAuthState();
+      const token = await getAuthToken();
       const headers = getAuthHeaders(token);
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
+      const response = await fetch(withBaseUrl('/api/profile'), {
+        method: 'PATCH',
         headers: {
           ...headers,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username: usernameInput.trim() })
+        body: JSON.stringify({ username: trimmed })
       });
       
       if (!response.ok) {
@@ -196,7 +274,7 @@ export default function SettingsScreen() {
     } finally {
       setUsernameLoading(false);
     }
-  }, [usernameInput, checkUsernameAvailability, refreshUserProfile]);
+  }, [usernameInput, checkUsernameAvailability, refreshUserProfile, profile?.username]);
 
   const startEditingUsername = useCallback(() => {
     setUsernameInput(profile?.username || '');
@@ -213,11 +291,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Pressable style={styles.flex1} onPress={Keyboard.dismiss}>
-        {profileLoading ? (
-          <View style={styles.centered}> 
-            <ActivityIndicator size="small" color="#007AFF" />
-          </View>
-        ) : profile ? (
+        {profile ? (
           <ThemedView style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Account</ThemedText>
             
@@ -272,13 +346,15 @@ export default function SettingsScreen() {
                         {usernameLoading ? 'Saving…' : 'Save'}
                       </ThemedText>
                     </Pressable>
-                    <Pressable 
-                      style={[styles.editButton, styles.cancelButton]} 
-                      onPress={cancelEditingUsername}
-                      disabled={usernameLoading}
-                    >
-                      <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-                    </Pressable>
+                    {profile.username ? (
+                      <Pressable 
+                        style={[styles.editButton, styles.cancelButton]} 
+                        onPress={cancelEditingUsername}
+                        disabled={usernameLoading}
+                      >
+                        <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+                      </Pressable>
+                    ) : null}
                   </View>
                 </View>
                 {usernameError && (
@@ -312,7 +388,7 @@ export default function SettingsScreen() {
                     <ThemedText style={styles.inputError}>Please enter a valid email address.</ThemedText>
                   )}
                 </View>
-                <Pressable style={styles.buttonPrimary} onPress={sendOtp} disabled={submitLoading || email.trim().length === 0}>
+                <Pressable style={styles.buttonPrimary} onPress={() => sendOtp()} disabled={submitLoading || email.trim().length === 0}>
                   <ThemedText style={styles.buttonPrimaryText}>{submitLoading ? 'Sending…' : 'Login/Register'}</ThemedText>
                 </Pressable>
                 {submitError && <ThemedText style={styles.errorText}>Error: {submitError}</ThemedText>}
@@ -334,17 +410,44 @@ export default function SettingsScreen() {
                     keyboardType="number-pad"
                     onTouchStart={(e) => { e.stopPropagation(); }}
                   />
-                  {submitError && submitError.toLowerCase().includes('otp') && (
-                    <ThemedText style={styles.inputError}>{submitError}</ThemedText>
+                  {otpAttemptsRemaining !== null ? (
+                    <ThemedText style={styles.inputError}>
+                      {otpAttemptsRemaining === 0
+                        ? 'You have used all one-time passcode attempts for today. Please try again tomorrow.'
+                        : `Incorrect code. Please be careful — ${otpAttemptsRemaining} attempt${otpAttemptsRemaining === 1 ? '' : 's'} remaining today.`}
+                    </ThemedText>
+                  ) : (
+                    submitError && (
+                      <ThemedText style={styles.inputError}>{submitError}</ThemedText>
+                    )
                   )}
                 </View>
-                <Pressable style={styles.buttonPrimary} onPress={completeAuth} disabled={submitLoading || otp.trim().length === 0}>
-                  <ThemedText style={styles.buttonPrimaryText}>{submitLoading ? 'Verifying…' : 'Verify & Continue'}</ThemedText>
-                </Pressable>
-                <Pressable style={styles.buttonLink} onPress={() => { setStep('enterEmail'); setSubmitError(null); setSubmitMessage(null); }}>
+                <View style={styles.actionsRow}>
+                  <Pressable
+                    style={[styles.buttonPrimary, styles.flex1, !isValidOtp || submitLoading ? styles.buttonPrimaryDisabled : null]}
+                    onPress={completeAuth}
+                    disabled={submitLoading || !isValidOtp}
+                  >
+                    <ThemedText style={[styles.buttonPrimaryText, !isValidOtp || submitLoading ? styles.buttonPrimaryTextDisabled : null]}>
+                      {submitLoading ? 'Verifying…' : 'Verify & Continue'}
+                    </ThemedText>
+                  </Pressable>
+                  {resendRemainingSeconds > 0 ? (
+                    <Pressable style={[styles.buttonSecondary, styles.flex1]} disabled>
+                      <ThemedText style={styles.buttonSecondaryDisabledText}>
+                        {`Resend in ${Math.floor(resendRemainingSeconds / 60)}:${String(resendRemainingSeconds % 60).padStart(2, '0')}`}
+                      </ThemedText>
+                    </Pressable>
+                  ) : (
+                    <Pressable style={[styles.buttonSecondary, styles.buttonSecondaryEnabled, styles.flex1]} onPress={() => sendOtp(true)} disabled={submitLoading}>
+                      <ThemedText style={styles.buttonSecondaryEnabledText}>Resend OTP</ThemedText>
+                    </Pressable>
+                  )}
+                </View>
+                <Pressable style={styles.buttonLink} onPress={() => { setStep('enterEmail'); setSubmitError(null); setSubmitMessage(null); setOtpAttemptsRemaining(null); }}>
                   <ThemedText style={styles.buttonLinkText}>Back</ThemedText>
                 </Pressable>
-                {submitError && !submitError.toLowerCase().includes('otp') && <ThemedText style={styles.errorText}>Error: {submitError}</ThemedText>}
+                
               </View>
             )}
           </ThemedView>
@@ -369,7 +472,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   section: {
-    paddingHorizontal: 20,
+    paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
+    marginTop: 15,
     gap: 10,
   },
   sectionTitle: {
@@ -439,9 +543,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     alignItems: 'center',
   },
+  buttonPrimaryDisabled: {
+    backgroundColor: '#f2f2f7',
+  },
   buttonPrimaryText: {
     color: '#fff',
     fontWeight: '700',
+  },
+  buttonPrimaryTextDisabled: {
+    color: '#999',
   },
   buttonTertiary: {
     paddingHorizontal: 12,
@@ -518,12 +628,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  editActionsCentered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   editButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     alignItems: 'center',
     flex: 1,
+  },
+  editButtonNoFlex: {
+    flex: 0,
   },
   saveButton: {
     backgroundColor: '#007AFF',
@@ -545,5 +662,31 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  buttonSecondary: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#f2f2f7',
+    alignItems: 'center',
+  },
+  buttonSecondaryEnabled: {
+    backgroundColor: '#007AFF',
+  },
+  buttonSecondaryText: {
+    color: '#333',
+    fontWeight: '700',
+  },
+  buttonSecondaryDisabledText: {
+    color: '#999',
+    fontWeight: '700',
+  },
+  buttonSecondaryEnabledText: {
+    color: '#fff',
+    fontWeight: '700',
   },
 });

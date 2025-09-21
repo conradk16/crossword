@@ -6,6 +6,7 @@ import { BlurView } from 'expo-blur';
 import { Audio } from 'expo-av';
 import { loadPuzzleState, savePuzzleState } from '@/services/storage';
 import { getAuthToken, initializeState, sync } from '@/services/state';
+import { withBaseUrl } from '@/constants/Api';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -141,7 +142,7 @@ export default function CrosswordScreen() {
   // Check if puzzle date has changed by fetching current puzzle date from API
   const checkForNewPuzzle = async () => {
     try {
-      const response = await fetch('/api/puzzles/daily');
+      const response = await fetch(withBaseUrl('/api/puzzles/daily'));
       if (response.ok) {
         const data: CrosswordData = await response.json();
         // If dates don't match, fetch new puzzle data
@@ -178,7 +179,7 @@ export default function CrosswordScreen() {
   const fetchPuzzleData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/puzzles/daily');
+      const response = await fetch(withBaseUrl('/api/puzzles/daily'));
       if (!response.ok) {
         throw new Error('Failed to fetch puzzle');
       }
@@ -537,15 +538,14 @@ export default function CrosswordScreen() {
         return; // Can't sync without auth
       }
 
-      const response = await fetch('/api/puzzles/daily/complete', {
+      const response = await fetch(withBaseUrl('/api/puzzles/daily/complete'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          completionTime: gameState.elapsedTime,
-          date: puzzleData?.date,
+          timeMs: gameState.elapsedTime * 1000,
         }),
       });
 

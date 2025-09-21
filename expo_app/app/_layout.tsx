@@ -7,7 +7,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { setupMockFetch } from '@/services/mockApi';
 import { initializeState, sync, subscribeToState, getAuthState } from '@/services/state';
 
 export default function RootLayout() {
@@ -17,10 +16,7 @@ export default function RootLayout() {
   });
   const [stateInitialized, setStateInitialized] = useState(false);
 
-  // Initialize mock API
-  useEffect(() => {
-    setupMockFetch();
-  }, []);
+  // No mock API; real server is used via absolute base URL
 
   // Initialize state once
   useEffect(() => {

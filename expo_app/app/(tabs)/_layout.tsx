@@ -52,6 +52,8 @@ export default function TabLayout() {
         options={{
           title: 'Account',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          freezeOnBlur: true,
+          unmountOnBlur: false,
         }}
       />
     </Tabs>

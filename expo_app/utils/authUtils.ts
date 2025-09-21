@@ -1,3 +1,4 @@
+import { withBaseUrl } from '@/constants/Api';
 export function getAuthHeaders(token: string | null): Record<string, string> {
   if (token) {
     return { Authorization: `Bearer ${token}` };
@@ -11,7 +12,7 @@ export async function validateAuthToken(token: string | null): Promise<boolean> 
       return false;
     }
     
-    const response = await fetch('/api/profile', {
+    const response = await fetch(withBaseUrl('/api/profile'), {
       headers: { Authorization: `Bearer ${token}` }
     });
     

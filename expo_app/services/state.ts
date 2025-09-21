@@ -1,4 +1,5 @@
 import { validateAuthToken } from '../utils/authUtils';
+import { withBaseUrl } from '@/constants/Api';
 import { loadStoredAuthToken, saveStoredAuthToken, clearStoredAuthToken, loadPuzzleState, savePuzzleState } from './storage';
 
 // Types
@@ -142,7 +143,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Re
     ...(state.authToken ? { Authorization: `Bearer ${state.authToken}` } : {}),
   };
   
-  return fetch(url, {
+  return fetch(url.startsWith('http') ? url : withBaseUrl(url), {
     ...options,
     headers,
   });
@@ -178,13 +179,23 @@ async function syncLeaderboard(): Promise<void> {
   }
 
   try {
-    const response = await fetchWithAuth('/api/leaderboard/daily');
+    // Backend endpoint: GET /api/puzzles/daily/leaderboard -> [{ username, timeMs }]
+    const response = await fetchWithAuth('/api/puzzles/daily/leaderboard');
     if (!response.ok) {
       return; // Silently fail, keep existing data
     }
     
-    const data: LeaderboardData = await response.json();
-    updateState({ leaderboard: data });
+    const rows: Array<{ username: string | null; timeMs: number | null }> = await response.json();
+    const today = new Date().toISOString().split('T')[0];
+    const leaderboard: LeaderboardData = {
+      date: today,
+      leaderboard: rows.map((r, idx) => ({
+        rank: idx + 1,
+        user: { id: r.username || `user-${idx + 1}`, username: r.username || '(unknown)' },
+        completionTime: r.timeMs ?? null,
+      })),
+    };
+    updateState({ leaderboard });
   } catch (error) {
     // Silently fail, keep existing data
   }
@@ -202,20 +213,22 @@ async function syncFriends(): Promise<void> {
   try {
     // Fetch friends and friend requests in parallel
     const [friendsResponse, requestsResponse] = await Promise.all([
-      fetchWithAuth('/api/friends'),
-      fetchWithAuth('/api/friends/requests'),
+      fetchWithAuth('/api/friends'), // returns string[] of usernames
+      fetchWithAuth('/api/friends/requests'), // returns string[] of requester usernames
     ]);
     
     if (!friendsResponse.ok || !requestsResponse.ok) {
       return; // Silently fail, keep existing data
     }
     
-    const friendsData = await friendsResponse.json();
-    const requestsData = await requestsResponse.json();
-    
-    updateState({ 
-      friends: friendsData.friends || [], 
-      friendRequests: requestsData.incoming || []
+    const friendsUsernames: string[] = await friendsResponse.json();
+    const incomingUsernames: string[] = await requestsResponse.json();
+    updateState({
+      friends: friendsUsernames.map((u) => ({ id: u, username: u })),
+      friendRequests: incomingUsernames.map((u, i) => ({
+        requestId: `req-${i + 1}-${u}`,
+        fromUser: { id: u, username: u },
+      })),
     });
   } catch (error) {
     // Silently fail, keep existing data
@@ -234,8 +247,9 @@ async function syncProfile(): Promise<void> {
       return; // Silently fail, keep existing data
     }
     
-    const data: Profile = await response.json();
-    updateState({ profile: data });
+    const data: { user_id: string; email: string; name: string | null; username: string | null } = await response.json();
+    const profile: Profile = { id: data.user_id, email: data.email, username: data.username || '' };
+    updateState({ profile });
   } catch (error) {
     // Silently fail, keep existing data
   }
@@ -271,8 +285,7 @@ async function syncPuzzleCompletion(): Promise<void> {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            completionTime: stored.completionSeconds,
-            date: today,
+            timeMs: Math.round((stored.completionSeconds || 0) * 1000),
           }),
         });
       } catch (error) {
@@ -283,15 +296,15 @@ async function syncPuzzleCompletion(): Promise<void> {
     // Now get the true value from server
     const response = await fetchWithAuth('/api/puzzles/daily/complete');
     if (response.ok) {
-      const data = await response.json();
+      const data: { completed: boolean; puzzleDate?: string; timeMs?: number } = await response.json();
       const completion: PuzzleCompletion = {
-        date: data.date,
-        completionTime: data.completionTime,
+        date: data.puzzleDate || today,
+        completionTime: data.completed ? Math.round((data.timeMs || 0) / 1000) : null,
       };
       
       // Update local storage with server truth
-      if (data.completionTime) {
-        await savePuzzleState(data.date, { completionSeconds: data.completionTime });
+      if (completion.completionTime) {
+        await savePuzzleState(completion.date, { completionSeconds: completion.completionTime });
       }
       
       // Update state

@@ -1,0 +1,33 @@
+export type ApiEnvironment = 'local' | 'dev' | 'prod';
+
+function getEnv(): ApiEnvironment {
+  const env = (process.env.EXPO_PUBLIC_API_ENV || 'local').toLowerCase();
+  if (env === 'dev' || env === 'prod') return env as ApiEnvironment;
+  return 'local';
+}
+
+export function getApiBaseUrl(): string {
+  const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (explicit && explicit.trim().length > 0) {
+    return explicit.trim().replace(/\/$/, '');
+  }
+
+  const env = getEnv();
+  switch (env) {
+    case 'dev':
+      return 'https://conradscrossword.dev';
+    case 'prod':
+      return 'https://conradscrossword.com';
+    case 'local':
+    default:
+      return 'http://localhost:3000';
+  }
+}
+
+export function withBaseUrl(path: string): string {
+  const base = getApiBaseUrl();
+  if (!path.startsWith('/')) return `${base}/${path}`;
+  return `${base}${path}`;
+}
+
+

@@ -13,6 +13,7 @@ import {
   getFriendsState,
   refreshFriends
 } from '@/services/state';
+import { withBaseUrl } from '@/constants/Api';
 
 type User = { id: string; username: string };
 
@@ -63,18 +64,18 @@ export default function FriendsScreen() {
       const myToken = ++searchTokenRef.current;
       setSearchLoading(true);
       
-      const response = await fetch(`/api/users/search?username=${encodeURIComponent(trimmed)}`, {
+      const response = await fetch(withBaseUrl(`/api/users/search?prefix=${encodeURIComponent(trimmed)}`), {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (!response.ok) throw new Error('Search failed');
       
-      const data = await response.json();
+      const data: string[] = await response.json();
       
       // Check if this search is still the most recent one
       if (myToken !== searchTokenRef.current) return;
       
-      setSearchResults(data.users || []);
+      setSearchResults((data || []).map((u) => ({ id: u, username: u })));
       setLastSearchedQuery(trimmed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed');
@@ -106,16 +107,16 @@ export default function FriendsScreen() {
     if (!token) return;
     
     try {
-      const response = await fetch('/api/friends/requests', {
+      const response = await fetch(withBaseUrl('/api/friends/requests/send'), {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify({ recipientId }),
+        body: JSON.stringify({ username: recipientId }),
       });
       
-      if (!response.ok && response.status !== 202) {
+      if (!response.ok) {
         throw new Error('Failed to send request');
       }
       
@@ -135,13 +136,13 @@ export default function FriendsScreen() {
     if (!token) return;
     
     try {
-      const response = await fetch(`/api/friends/requests/${requestId}`, {
-        method: 'PUT',
+      const response = await fetch(withBaseUrl(`/api/friends/requests/respond`), {
+        method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action: action === 'accept' ? 'accept' : 'reject', username: requestId.replace(/^req-\d+-/, '') }),
       });
       
       if (!response.ok) {
@@ -153,30 +154,6 @@ export default function FriendsScreen() {
       setError(e instanceof Error ? e.message : 'Failed to update request');
     }
   }, []);
-
-  const handleRemoveFriend = useCallback(async (userId: string) => {
-    Keyboard.dismiss();
-    setError(null);
-    
-    const { token } = getAuthState();
-    if (!token) return;
-    
-    try {
-      const response = await fetch(`/api/friends/${userId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to remove friend');
-      }
-      
-      await refreshFriends();
-      await onSearch();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to remove friend');
-    }
-  }, [onSearch]);
 
   const { isAuthenticated } = getAuthState();
   const { friends, friendRequests } = getFriendsState();
@@ -287,9 +264,6 @@ export default function FriendsScreen() {
             renderItem={({ item }) => (
               <ThemedView style={styles.row}>
                 <ThemedText style={styles.username}>{item.username}</ThemedText>
-                <Pressable style={styles.buttonTertiary} onPress={() => handleRemoveFriend(item.id)}>
-                  <ThemedText style={styles.buttonTertiaryText}>Remove</ThemedText>
-                </Pressable>
               </ThemedView>
             )}
           />
