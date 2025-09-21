@@ -7,9 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
-import { 
-  getAuthState, 
-} from '@/services/state';
+import { isAuthenticated as isAuthenticatedAuth, getAuthToken } from '@/services/auth';
 import { withBaseUrl } from '@/constants/Api';
 
 type User = { id: string; username: string };
@@ -29,8 +27,9 @@ export default function FriendsScreen() {
   const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
 
   const loadFriends = useCallback(async () => {
-    const { isAuthenticated, token } = getAuthState();
-    if (!isAuthenticated || !token) {
+    const isAuth = isAuthenticatedAuth();
+    const token = await getAuthToken();
+    if (!isAuth || !token) {
       setFriends([]);
       setFriendRequests([]);
       setCurrentUsername(null);
@@ -79,7 +78,7 @@ export default function FriendsScreen() {
         return;
       }
       
-      const { token } = getAuthState();
+      const token = await getAuthToken();
       if (!token) return;
       
       const myToken = ++searchTokenRef.current;
@@ -124,7 +123,7 @@ export default function FriendsScreen() {
     Keyboard.dismiss();
     setError(null);
     
-    const { token } = getAuthState();
+    const token = await getAuthToken();
     if (!token) return;
     
     try {
@@ -158,7 +157,7 @@ export default function FriendsScreen() {
     Keyboard.dismiss();
     setError(null);
     
-    const { token } = getAuthState();
+    const token = await getAuthToken();
     if (!token) return;
     
     try {
@@ -181,7 +180,7 @@ export default function FriendsScreen() {
     }
   }, [loadFriends]);
 
-  const { isAuthenticated } = getAuthState();
+  const isAuthenticated = isAuthenticatedAuth();
 
   // Show login prompt if not authenticated
   if (!isAuthenticated) {

@@ -8,7 +8,13 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { HEADER_BOTTOM_MARGIN, HEADER_TOP_MARGIN, SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 import { formatTime } from '@/utils/crosswordUtils';
-import { getAuthState, type LeaderboardEntry } from '@/services/state';
+import { isAuthenticated as isAuthenticatedAuth, getAuthToken } from '@/services/auth';
+
+type LeaderboardEntry = {
+  rank: number;
+  user: { id: string; username: string };
+  completionTime: number | null;
+};
 import { withBaseUrl } from '@/constants/Api';
 
 export default function LeaderboardScreen() {
@@ -17,8 +23,9 @@ export default function LeaderboardScreen() {
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
 
   const loadLeaderboard = useCallback(async () => {
-    const { isAuthenticated, token } = getAuthState();
-    if (!isAuthenticated || !token) {
+    const isAuth = isAuthenticatedAuth();
+    const token = await getAuthToken();
+    if (!isAuth || !token) {
       setLeaderboard([]);
       setDate('');
       setCurrentUsername(null);
@@ -50,7 +57,7 @@ export default function LeaderboardScreen() {
       setLeaderboard((rows || []).map((r, idx) => ({
         rank: idx + 1,
         user: { id: r.username || `user-${idx + 1}`, username: r.username || '(unknown)' },
-        completionTime: r.timeMs ?? null,
+        completionTime: r.timeMs != null ? Math.floor(r.timeMs / 1000) : null,
       })));
     } catch {}
   }, []);
@@ -64,7 +71,7 @@ export default function LeaderboardScreen() {
   );
 
   // Show login prompt if not authenticated
-  const { isAuthenticated } = getAuthState();
+  const isAuthenticated = isAuthenticatedAuth();
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>

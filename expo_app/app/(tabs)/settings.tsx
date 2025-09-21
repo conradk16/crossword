@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { setAuthToken, clearAuthToken, getAuthToken } from '@/services/state';
+import { setAuthToken, clearAuthToken, getAuthToken } from '@/services/auth';
 import { getAuthHeaders } from '@/utils/authUtils';
 import { withBaseUrl } from '@/constants/Api';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
