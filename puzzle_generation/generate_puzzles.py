@@ -377,24 +377,11 @@ def build_clues(rows: int, cols: int, black_squares: Set[Tuple[int, int]], final
     }
 
     instructions = (
-        "You are a crossword editor. Create one concise, fair clue per entry for a mini crossword. "
-        "Audience: general 12th grader. Avoid profanity and answers in the clue. "
-        "Follow American crossword conventions: "
-        "- Quotation marks mean playful clue or pun. "
-        "- Question mark means misdirection or trick clue. "
-        "- Abbreviations in clue mean abbreviation in answer. "
-        "- Ending with 'say' or 'for example' signals a category example. Don't use \"maybe\" or \"perhaps\", instead always use \"say\" or \"for example\". "
-        "- Fill-in-the-blank clues should form natural phrases. "
-        "- Parentheses may indicate asides or stage directions. "
-        "- Odd capitalization can signal misdirection. "
-        "- Foreign-language words in clue mean answer is in that language. "
-        "- Plural clues require plural answers, singular for singular. "
-        "- Verb tense in clue must match answer tense. "
-        "Use these conventions in roughly half of the clues. "
-        "Mix direct clues and clever clues for variety and fairness. "
-        "Don't end with a period unless that's part of the clue. "
-        "Clues must be 1–10 words long, natural and readable. "
-        "Mix shorter clues with longer ones for variety. "
+        "You are a crossword editor. Create one clever clue per entry for a crossword puzzle. "
+        "Follow American crossword conventions: question mark for double-meanings, fill-in-the-blanks, say/for example/for one/ e.g., abbreviated clues for abbreviated words, foreign language clue for foreign language word, no answer in the clue, etc. "
+        "Clues should vary in length between 1 and 10 words. "
+        "For each entry, first write out 10 clues, trying out many of the crossword conventions listed above. Then, choose the most clever option out of those 10 that would be understandable to a modern 12th grader and doesn't contain profanity. "
+        "Finally, consider if there are any slight tweaks or ways to improve that final clue (make it clearer or cleaner) before selecting it. "
     )
 
     client = OpenAI()

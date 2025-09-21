@@ -1,9 +1,0 @@
-{
-  "base_dir": "/Users/conradk/Documents/crossword/puzzle_generation",
-  "batch_id": "batch_68cd9ef17be88190b607b33533903b23",
-  "created_at": 1758306034,
-  "input_file_id": "file-6hd7g5j5eVNbKeSnFyQ76p",
-  "input_path": "/Users/conradk/Documents/crossword/puzzle_generation/batch_input.jsonl",
-  "model": "gpt-5-nano-2025-08-07",
-  "num_requests": 100
-}
