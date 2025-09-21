@@ -44,6 +44,7 @@ export default function SettingsScreen() {
   const isValidOtp = useMemo(() => /^(\d){6}$/.test(otp.trim()), [otp]);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const isEditingUsername = editingUsername || (!!profile && !profile?.username);
 
   const refreshUserProfile = useCallback(async () => {
     setMeError(null);
@@ -71,13 +72,7 @@ export default function SettingsScreen() {
     }, [refreshUserProfile])
   );
 
-  // Auto-prompt for username if it's blank
-  useEffect(() => {
-    if (profile && !profile.username && !editingUsername) {
-      setEditingUsername(true);
-      setUsernameInput('');
-    }
-  }, [profile, editingUsername]);
+  
 
   // Resend countdown timer (1-minute cooldown from last send)
   useEffect(() => {
@@ -301,7 +296,7 @@ export default function SettingsScreen() {
             </View>
             
             {/* Username row */}
-            {!editingUsername ? (
+            {!isEditingUsername ? (
               <View style={styles.row}>
                 <ThemedText style={styles.label}>Username</ThemedText>
                 <View style={styles.rowRight}>
