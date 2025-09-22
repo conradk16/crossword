@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TextInput, Dimensions, View, Pressable, Keyboard, useWindowDimensions, Modal, AppState } from 'react-native';
+import { StyleSheet, ScrollView, Platform, TextInput, Dimensions, View, Pressable, Keyboard, useWindowDimensions, Modal, AppState } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
@@ -619,9 +619,8 @@ export default function CrosswordScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardContainer} 
-        behavior={'height'}
+      <View 
+        style={styles.keyboardContainer}
       >
         <ScrollView
           style={styles.scrollView}
@@ -689,7 +688,7 @@ export default function CrosswordScreen() {
           </ThemedView>
           </Pressable>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
       
       {/* Completion Modal */}
       <Modal
@@ -723,12 +722,14 @@ function computeMaxGridSize(params: {
   const horizontalPadding = SCROLL_CONTENT_HORIZONTAL_PADDING * 2; // scrollContent padding on both sides
   const maxByWidth = windowWidth - horizontalPadding;
   const contentBottomPadding = CONTENT_BOTTOM_PADDING;
+  const maxKeyboardReserve = Math.min(400, windowHeight * 0.5);
+  const clampedKeyboardReserve = Math.max(0, Math.min(reservedKeyboardHeight, maxKeyboardReserve));
 
   // Available vertical space within the safe area, minus header and reserved keyboard space
   const availableByHeight = windowHeight
     - safeTop
     - headerHeight
-    - reservedKeyboardHeight
+    - clampedKeyboardReserve
     - contentBottomPadding;
 
   const size = Math.min(maxByWidth, availableByHeight, 400);
