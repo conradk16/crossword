@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { hashToken } from '@/lib/auth/utils';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,10 +16,14 @@ export async function POST(req: NextRequest) {
     }
 
     const tokenHash = hashToken(token);
-    const { rows } = await query<{ user_id: string }>(
-      `DELETE FROM user_sessions WHERE token_hash = $1 RETURNING user_id`,
-      [tokenHash]
-    );
+	// Instead of deleting the session row (which erases the last successful login timestamp),
+	// replace the token hash with a random value so the bearer token becomes invalid while
+	// preserving the row's created_at for rate-limiting logic that references last login.
+	const replacementHash = hashToken(crypto.randomBytes(32).toString('hex'));
+	const { rows } = await query<{ user_id: string }>(
+	  `UPDATE user_sessions SET token_hash = $2 WHERE token_hash = $1 RETURNING user_id`,
+	  [tokenHash, replacementHash]
+	);
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Token not found' }, { status: 401 });
