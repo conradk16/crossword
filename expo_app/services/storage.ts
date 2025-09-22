@@ -4,6 +4,7 @@ export interface StoredPuzzleState {
   date: string;
   letters?: (string | null)[][];
   completionSeconds?: number;
+  elapsedSeconds?: number;
 }
 
 const STORAGE_KEY_PREFIX = 'puzzleState:';
@@ -51,6 +52,10 @@ export async function savePuzzleState(
     ...partial,
   };
   await writeState(date, next);
+}
+
+export async function saveElapsedSeconds(date: string, elapsedSeconds: number): Promise<void> {
+  await savePuzzleState(date, { elapsedSeconds });
 }
 
 export async function loadStoredAuthToken(): Promise<string | null> {

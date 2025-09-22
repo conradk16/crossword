@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Audio } from 'expo-av';
-import { loadPuzzleState, savePuzzleState } from '@/services/storage';
+import { loadPuzzleState, savePuzzleState, saveElapsedSeconds } from '@/services/storage';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
@@ -33,6 +33,7 @@ export default function CrosswordScreen() {
   const [error, setError] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const textInputRef = useRef<TextInput>(null);
+  const elapsedRef = useRef<number>(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [completionSeconds, setCompletionSeconds] = useState<number | null>(null);
   const [shouldRefocus, setShouldRefocus] = useState(true);
@@ -130,6 +131,7 @@ export default function CrosswordScreen() {
 
         // Try to hydrate with saved state for this date
         let hydratedGrid = baseGrid;
+        let restoredElapsedSeconds = 0;
         try {
           const saved = await loadPuzzleState(data.date);
           if (saved && Array.isArray(saved.letters)) {
@@ -145,6 +147,9 @@ export default function CrosswordScreen() {
           }
           if (saved?.completionSeconds && saved.completionSeconds > 0) {
             setCompletionSeconds(saved.completionSeconds);
+            restoredElapsedSeconds = saved.completionSeconds;
+          } else if (saved?.elapsedSeconds && saved.elapsedSeconds > 0) {
+            restoredElapsedSeconds = saved.elapsedSeconds;
           }
         } catch {}
 
@@ -163,7 +168,7 @@ export default function CrosswordScreen() {
           direction: start.direction,
           currentWord: initialWord,
           puzzleDate: data.date,
-          elapsedTime: completionSeconds ? completionSeconds : 0,
+          elapsedTime: restoredElapsedSeconds,
         }));
 
         updateGridHighlighting(hydratedGrid, start.row, start.col, initialWord);
@@ -243,6 +248,10 @@ export default function CrosswordScreen() {
     if (!puzzleData || gridToPersist.length === 0) return;
     const letters = gridToPersist.map(row => row.map(cell => (cell.isBlack ? null : (cell.userLetter || ''))));
     savePuzzleState(puzzleData.date, { letters });
+    // Always persist in-progress elapsed time
+    if (options?.completionSeconds >= 0) {
+      savePuzzleState(puzzleData.date, { elapsedSeconds: options.completionSeconds });
+    }
 
     // If complete, persist completion time locally and sync to server
     if (isPuzzleComplete(gridToPersist, puzzleData)) {
@@ -518,20 +527,30 @@ export default function CrosswordScreen() {
     };
   }, []);
 
-  // Timer effect
+  // Timer tick + persist effect
   useEffect(() => {
-    if (completionSeconds || isTimerPaused) {
+    if (completionSeconds || isTimerPaused || !puzzleData) {
       return;
     }
     const interval = setInterval(() => {
-      setGameState(prev => ({
-        ...prev,
-        elapsedTime: prev.elapsedTime + 1
-      }));
+      setGameState(prev => {
+        const nextElapsed = prev.elapsedTime + 1;
+        elapsedRef.current = nextElapsed;
+        return {
+          ...prev,
+          elapsedTime: nextElapsed,
+        };
+      });
+      try {
+        const seconds = Math.max(0, Math.floor(elapsedRef.current || 0));
+        if (puzzleData?.date) {
+          saveElapsedSeconds(puzzleData.date, seconds);
+        }
+      } catch {}
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [completionSeconds, isTimerPaused]);
+  }, [completionSeconds, isTimerPaused, puzzleData]);
 
   // Focus TextInput when component mounts or when game state changes, but not if puzzle is solved
   // in order to keep the keyboard appropriately up or down
