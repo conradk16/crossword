@@ -18,12 +18,19 @@ export async function GET(req: NextRequest) {
     // Case-insensitive prefix match using functional index on lower(username)
     const like = prefix.replace(/[%_]/g, '\\$&') + '%';
     const { rows } = await query<{ username: string }>(
-      `SELECT username
-       FROM users
-       WHERE username IS NOT NULL AND lower(username) LIKE lower($1)
-       ORDER BY username ASC
+      `SELECT u.username
+       FROM users u
+       WHERE u.username IS NOT NULL
+         AND u.user_id <> $2
+         AND lower(u.username) LIKE lower($1)
+         AND NOT EXISTS (
+           SELECT 1
+           FROM friends f
+           WHERE f.user_id = $2 AND f.friend_user_id = u.user_id
+         )
+       ORDER BY u.username ASC
        LIMIT 10`,
-      [like]
+      [like, user.user_id]
     );
 
     // Return list of usernames only
