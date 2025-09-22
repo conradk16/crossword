@@ -10,6 +10,7 @@ import { HEADER_BOTTOM_MARGIN, HEADER_TOP_MARGIN, SCROLL_CONTENT_HORIZONTAL_PADD
 import { formatTime } from '@/utils/crosswordUtils';
 import { useAuth } from '@/services/AuthContext';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
+import { getFriendlyError } from '@/utils/errorUtils';
 
 type LeaderboardEntry = {
   rank: number;
@@ -24,12 +25,14 @@ export default function LeaderboardScreen() {
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { token, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
 
   const loadLeaderboard = useCallback(async () => {
     try { syncAuth().catch(() => {}); } catch {} // ignore failures
     try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
+    setError(null);
     if (!token) {
       setLeaderboard([]);
       setDate('');
@@ -64,7 +67,12 @@ export default function LeaderboardScreen() {
         user: { id: r.username || `user-${idx + 1}`, username: r.username || '(unknown)' },
         completionTime: r.timeMs != null ? Math.floor(r.timeMs / 1000) : null,
       })));
-    } catch {}
+    } catch (err) {
+      const friendly = getFriendlyError(err, 'Failed to load leaderboard');
+      setError(friendly.message);
+      setLeaderboard([]);
+      setDate('');
+    }
   }, [token, syncAuth, syncFriendRequestCount]);
 
   // Refresh leaderboard when the tab is focused
@@ -120,6 +128,16 @@ export default function LeaderboardScreen() {
         <View style={styles.header}>
           <ThemedText style={styles.loadingText}>Loading...</ThemedText>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ThemedView style={styles.keyboardContainer}>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+        </ThemedView>
       </SafeAreaView>
     );
   }
@@ -184,6 +202,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   header: {
     padding: 8,
@@ -268,6 +289,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
     marginTop: 50,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 50,
+    paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
+    color: '#000',
   },
   buttonPrimary: {
     paddingHorizontal: 12,

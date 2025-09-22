@@ -10,6 +10,7 @@ import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
 import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
+import { TextStyles } from '@/constants/TextStyles';
 import { getFriendlyError } from '@/utils/errorUtils';
 
 type User = { id: string; username: string };
@@ -27,6 +28,7 @@ export default function FriendsScreen() {
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [screenError, setScreenError] = useState<string | null>(null);
   const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
   const { token, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
@@ -55,7 +57,9 @@ export default function FriendsScreen() {
         requestId: `req-${i + 1}-${u}`,
         fromUser: { id: u, username: u },
       })));
-    } catch {}
+    } catch (e) {
+      throw e;
+    }
   }, [token, syncAuth, syncFriendRequestCount]);
 
   const onSearch = useCallback(async () => {
@@ -193,6 +197,10 @@ export default function FriendsScreen() {
           setInitialLoading(true);
           try {
             await loadFriends();
+            setScreenError(null);
+          } catch (e) {
+            const { message } = getFriendlyError(e, 'Failed to load friends');
+            setScreenError(message);
           } finally {
             if (!cancelled) {
               setHasLoadedOnce(true);
@@ -201,7 +209,7 @@ export default function FriendsScreen() {
           }
         } else {
           // Background refresh without toggling loading
-          loadFriends();
+          loadFriends().catch(() => {});
         }
       };
       run();
@@ -215,6 +223,16 @@ export default function FriendsScreen() {
         <View style={styles.section}>
           <ThemedText style={styles.loadingText}>Loading...</ThemedText>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (screenError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ThemedView style={styles.keyboardContainer}>
+          <ThemedText style={styles.screenErrorText}>{screenError}</ThemedText>
+        </ThemedView>
       </SafeAreaView>
     );
   }
@@ -343,8 +361,8 @@ export default function FriendsScreen() {
       {/* Friends list removed */}
       {error && (
         <View style={styles.section}>
-          <ThemedText style={isSearchNetworkError ? styles.infoText : styles.errorText}>
-            {isSearchNetworkError ? error : `Error: ${error}`}
+          <ThemedText style={isSearchNetworkError ? TextStyles.networkInfo : styles.errorText}>
+            {isSearchNetworkError ? error : `${error}`}
           </ThemedText>
         </View>
       )}
@@ -357,6 +375,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   flex1: {
     flex: 1,
@@ -474,6 +495,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#FF3B30',
     marginTop: 0,
+  },
+  screenErrorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 50,
+    paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
+    color: '#000',
   },
   infoText: {
     fontSize: 16,

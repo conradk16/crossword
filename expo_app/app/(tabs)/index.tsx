@@ -14,6 +14,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { CrosswordGrid } from '@/components/CrosswordGrid';
 import { CrosswordHeader } from '@/components/CrosswordHeader';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
+import { getFriendlyError } from '@/utils/errorUtils';
 
 import { CrosswordData, CrosswordCell, Direction, GameState } from '@/types/crossword';
 import { convertGridToCells, findWordForPosition, isPuzzleComplete, findNextBlankSpotInDirectionAfter, findNextClueStartInDirectionAfter, findFirstEmptySpotInDirection, getNextCellInWord, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection, getNextPositionForOverwriteAdvance, getNextPositionForEmptyAdvance, getPrevPositionForBackspace } from '@/utils/crosswordUtils';
@@ -186,7 +187,13 @@ export default function CrosswordScreen() {
       if ((err as any)?.name === 'AbortError') {
         return;
       }
-      setError(err instanceof Error ? err.message : 'Failed to load puzzle');
+      // If network fails and we already have a puzzle loaded, suppress error
+      if (puzzleData) {
+        return;
+      }
+      // Try to use any locally saved letters/timer for current date if known
+      // If we don't know the date yet and no puzzle is loaded, we have nothing to show
+      setError(getFriendlyError(err, 'Failed to load puzzle').message);
     } finally {
       if (!background) {
         setLoading(false);
@@ -565,7 +572,7 @@ export default function CrosswordScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ThemedView style={styles.keyboardContainer}>
-          <ThemedText style={styles.errorText}>Error: {error}</ThemedText>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
         </ThemedView>
       </SafeAreaView>
     );
@@ -716,7 +723,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginTop: 50,
-    color: '#ff6b6b',
+    paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
+    color: '#000',
   },
   hiddenInput: {
     position: 'absolute',

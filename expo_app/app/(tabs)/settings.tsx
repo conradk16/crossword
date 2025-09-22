@@ -11,6 +11,7 @@ import { withBaseUrl } from '@/constants/Api';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { getFriendlyError } from '@/utils/errorUtils';
+import { TextStyles } from '@/constants/TextStyles';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,6 +19,7 @@ export default function SettingsScreen() {
   const [profile, setProfile] = useState<{ id: string; email: string; username: string } | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Login/Register form state (single button; determine flow via API)
   const [email, setEmail] = useState('');
@@ -69,7 +71,9 @@ export default function SettingsScreen() {
       } else {
         throw new Error('Failed to load profile');
       }
-    } catch {}
+    } catch (e) {
+      throw e;
+    }
   }, [token, syncAuth, syncFriendRequestCount]);
 
   const sendOtp = useCallback(async (forceResend: boolean = false) => {
@@ -191,6 +195,12 @@ export default function SettingsScreen() {
       setOtp('');
       setSubmitMessage(null);
       setSubmitError(null);
+      // Clear any network error flags and username editing UI state
+      setIsNetworkSubmitError(false);
+      setEditingUsername(false);
+      setUsernameInput('');
+      setUsernameError(null);
+      setUsernameLoading(false);
       setEmailErrorVisible(false);
       setOtpAttemptsRemaining(null);
       setResendRemainingSeconds(0);
@@ -314,7 +324,13 @@ export default function SettingsScreen() {
           setInitialLoading(true);
           try {
             if (token) {
-              await refreshUserProfile();
+              try {
+                await refreshUserProfile();
+                setError(null);
+              } catch (e) {
+                const { message } = getFriendlyError(e, 'Failed to load account');
+                setError(message);
+              }
             }
           } finally {
             if (!cancelled) {
@@ -325,7 +341,7 @@ export default function SettingsScreen() {
         } else {
           if (token) {
             // Background refresh without toggling loading
-            refreshUserProfile();
+            refreshUserProfile().catch(() => {});
           }
         }
       };
@@ -339,6 +355,16 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ThemedView style={styles.section}>
           <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ThemedView style={styles.keyboardContainer}>
+          <ThemedText style={styles.screenErrorText}>{error}</ThemedText>
         </ThemedView>
       </SafeAreaView>
     );
@@ -448,8 +474,8 @@ export default function SettingsScreen() {
                   <ThemedText style={styles.buttonPrimaryText}>{submitLoading ? 'Sending…' : 'Login/Register'}</ThemedText>
                 </Pressable>
                 {submitError && (
-                  <ThemedText style={isNetworkSubmitError ? [styles.inputError, styles.usernameErrorText] : styles.errorText}>
-                    {isNetworkSubmitError ? submitError : `Error: ${submitError}`}
+                  <ThemedText style={isNetworkSubmitError ? TextStyles.networkInfo : styles.errorText}>
+                    {isNetworkSubmitError ? submitError : `${submitError}`}
                   </ThemedText>
                 )}
                 {submitMessage && <ThemedText style={styles.muted}>{submitMessage}</ThemedText>}
@@ -519,6 +545,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   flex1: {
     flex: 1,
@@ -642,6 +671,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#FF3B30',
+  },
+  screenErrorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 50,
+    paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
+    color: '#000',
   },
   infoText: {
     fontSize: 16,
