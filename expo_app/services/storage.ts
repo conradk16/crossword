@@ -45,17 +45,21 @@ export async function savePuzzleState(
   date: string,
   partial: Partial<Omit<StoredPuzzleState, 'date'>>
 ): Promise<void> {
-  const existing = (await readState(date)) ?? { date };
-  const next: StoredPuzzleState = {
-    ...existing,
-    date,
-    ...partial,
-  };
-  await writeState(date, next);
+  try {
+    const key = buildStorageKey(date);
+    await AsyncStorage.mergeItem(key, JSON.stringify({ date, ...partial }));
+  } catch {
+    // ignore write errors
+  }
 }
 
 export async function saveElapsedSeconds(date: string, elapsedSeconds: number): Promise<void> {
-  await savePuzzleState(date, { elapsedSeconds });
+  try {
+    const key = buildStorageKey(date);
+    await AsyncStorage.mergeItem(key, JSON.stringify({ date, elapsedSeconds }));
+  } catch {
+    // ignore write errors
+  }
 }
 
 export async function loadStoredAuthToken(): Promise<string | null> {
