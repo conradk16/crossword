@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Upsert friend request: if one exists in either direction
     // - If recipient already sent to requester and it's pending, accept both and create friendship
     // - Else, create (or do nothing if duplicate) a pending request requester -> recipient
-    const result = await withTransaction(async (client) => {
+    await withTransaction(async (client) => {
       // Check inverse pending request
       const inverse = await client.query<{ id: number; status: string }>(
         'SELECT id, status FROM friend_requests WHERE requester_user_id = $1 AND recipient_user_id = $2',
@@ -86,21 +86,15 @@ export async function POST(req: NextRequest) {
       return { matchedExisting: false, createdRequestId: inserted.rows[0].id, autoAccepted: false };
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        request_id: result.createdRequestId,
-        auto_accepted: result.autoAccepted,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
     const message = (err as Error)?.message || '';
     if (message.includes('users_username_key')) {
       return NextResponse.json({ error: 'Invalid username' }, { status: 400 });
     }
     if (message.includes('uq_friend_requests_pair')) {
-      return NextResponse.json({ error: 'Request already exists' }, { status: 409 });
+      // Treat as success when a request already exists
+      return NextResponse.json({ success: true }, { status: 200 });
     }
     console.error('POST /api/friends/requests/send error', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
