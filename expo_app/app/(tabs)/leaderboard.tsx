@@ -22,6 +22,8 @@ export default function LeaderboardScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [date, setDate] = useState<string>('');
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const { token, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
 
@@ -68,9 +70,26 @@ export default function LeaderboardScreen() {
   // Refresh leaderboard when the tab is focused
   useFocusEffect(
     useCallback(() => {
-      loadLeaderboard();
-      return () => {};
-    }, [loadLeaderboard])
+      let cancelled = false;
+      const run = async () => {
+        if (!hasLoadedOnce) {
+          setInitialLoading(true);
+          try {
+            await loadLeaderboard();
+          } finally {
+            if (!cancelled) {
+              setHasLoadedOnce(true);
+              setInitialLoading(false);
+            }
+          }
+        } else {
+          // Background refresh without toggling loading
+          loadLeaderboard();
+        }
+      };
+      run();
+      return () => { cancelled = true; };
+    }, [loadLeaderboard, hasLoadedOnce])
   );
 
   // Background refresh when auth token changes (pure context approach)
@@ -90,6 +109,16 @@ export default function LeaderboardScreen() {
           >
             <ThemedText style={styles.buttonPrimaryText}>Go to Account</ThemedText>
           </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (initialLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <ThemedText style={styles.loadingText}>Loading...</ThemedText>
         </View>
       </SafeAreaView>
     );
@@ -234,6 +263,11 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  loadingText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 50,
   },
   buttonPrimary: {
     paddingHorizontal: 12,

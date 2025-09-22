@@ -23,6 +23,8 @@ export default function FriendsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
   const { token, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
@@ -172,10 +174,37 @@ export default function FriendsScreen() {
   // Refresh friends data and re-render when the tab is focused
   useFocusEffect(
     useCallback(() => {
-      loadFriends();
-      return () => {};
-    }, [loadFriends])
+      let cancelled = false;
+      const run = async () => {
+        if (!hasLoadedOnce) {
+          setInitialLoading(true);
+          try {
+            await loadFriends();
+          } finally {
+            if (!cancelled) {
+              setHasLoadedOnce(true);
+              setInitialLoading(false);
+            }
+          }
+        } else {
+          // Background refresh without toggling loading
+          loadFriends();
+        }
+      };
+      run();
+      return () => { cancelled = true; };
+    }, [loadFriends, hasLoadedOnce])
   );
+
+  if (initialLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.section}>
+          <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Show login prompt if not authenticated
   if (!token) {
@@ -428,6 +457,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#FF3B30',
     marginTop: 6,
+  },
+  loadingText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 50,
   },
   loginPromptTitle: {
     fontSize: 18,

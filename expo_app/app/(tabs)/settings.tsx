@@ -15,6 +15,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SettingsScreen() {
   const [profile, setProfile] = useState<{ id: string; email: string; username: string } | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Login/Register form state (single button; determine flow via API)
   const [email, setEmail] = useState('');
@@ -295,12 +297,41 @@ export default function SettingsScreen() {
   // refresh profile on focus
   useFocusEffect(
     React.useCallback(() => {
-      if (token) {
-        refreshUserProfile();
-      }
-      return () => {};
-    }, [refreshUserProfile, token])
+      let cancelled = false;
+      const run = async () => {
+        if (!hasLoadedOnce) {
+          setInitialLoading(true);
+          try {
+            if (token) {
+              await refreshUserProfile();
+            }
+          } finally {
+            if (!cancelled) {
+              setHasLoadedOnce(true);
+              setInitialLoading(false);
+            }
+          }
+        } else {
+          if (token) {
+            // Background refresh without toggling loading
+            refreshUserProfile();
+          }
+        }
+      };
+      run();
+      return () => { cancelled = true; };
+    }, [refreshUserProfile, token, hasLoadedOnce])
   );
+
+  if (initialLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ThemedView style={styles.section}>
+          <ThemedText style={styles.loadingText}>Loading...</ThemedText>
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
