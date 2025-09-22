@@ -69,7 +69,6 @@ The app calls the following Next.js routes (all prefixed with the configured bas
 - POST `/api/puzzles/daily/complete` (body: `{ timeMs: number }`)
 - GET `/api/puzzles/daily/leaderboard`
 - GET `/api/users/search?prefix=...`
-- GET `/api/friends`
 - GET `/api/friends/requests`
 - POST `/api/friends/requests/send` (body: `{ username: string }`)
 - POST `/api/friends/requests/respond` (body: `{ action: 'accept'|'reject', username: string }`)
