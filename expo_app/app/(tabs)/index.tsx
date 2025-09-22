@@ -16,7 +16,7 @@ import { CrosswordHeader } from '@/components/CrosswordHeader';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 
 import { CrosswordData, CrosswordCell, Direction, GameState } from '@/types/crossword';
-import { convertGridToCells, findWordForPosition, isPuzzleComplete, findNextBlankSpotInDirectionAfter, findNextClueStartInDirectionAfter, findFirstEmptySpotInDirection, getNextCellInWord, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection } from '@/utils/crosswordUtils';
+import { convertGridToCells, findWordForPosition, isPuzzleComplete, findNextBlankSpotInDirectionAfter, findNextClueStartInDirectionAfter, findFirstEmptySpotInDirection, getNextCellInWord, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection, getNextPositionForOverwriteAdvance, getNextPositionForEmptyAdvance } from '@/utils/crosswordUtils';
 
 export default function CrosswordScreen() {
   const [puzzleData, setPuzzleData] = useState<CrosswordData | null>(null);
@@ -280,7 +280,7 @@ export default function CrosswordScreen() {
     }
   }, [puzzleData, token]);
 
-  const advanceAfterInput = useCallback((newGrid: CrosswordCell[][], selectedRow: number, selectedCol: number) => {
+  const advanceAfterInput = useCallback((newGrid: CrosswordCell[][], selectedRow: number, selectedCol: number, insertedIntoEmpty: boolean) => {
     if (!gameState.currentWord || !puzzleData) return;
 
     // Check if puzzle is complete
@@ -304,135 +304,59 @@ export default function CrosswordScreen() {
       return;
     }
 
-    // Navigation rules (by direction type):
-    // 1) Move to the next EMPTY cell in the same word (only after current position)
-    const currentIndex = gameState.currentWord.cells.findIndex(c => c.row === selectedRow && c.col === selectedCol);
-    let moved = false;
-    for (let i = currentIndex + 1; i < gameState.currentWord.cells.length; i++) {
-      const cellPos = gameState.currentWord.cells[i];
-      if (!newGrid[cellPos.row][cellPos.col].userLetter) {
-        setGameState(prev => ({
-          ...prev,
-          selectedRow: cellPos.row,
-          selectedCol: cellPos.col,
-        }));
-        updateGridHighlighting(newGrid, cellPos.row, cellPos.col, gameState.currentWord);
-        moved = true;
-        break;
-      }
-    }
-
-    // If entire board has no empty cells, advance differently:
-    // - If there is a next cell in the current word, go there
-    // - Otherwise, go to the next word in the same direction
-    // - If at the last word in this direction, switch to the first word of the other direction
-    if (!moved && !hasAnyEmptyCells(newGrid)) {
-      const nextCellInline = getNextCellInWord(selectedRow, selectedCol, gameState.currentWord.cells);
-      if (nextCellInline) {
-        setGameState(prev => ({
-          ...prev,
-          selectedRow: nextCellInline.row,
-          selectedCol: nextCellInline.col,
-        }));
-        updateGridHighlighting(newGrid, nextCellInline.row, nextCellInline.col, gameState.currentWord);
-        return;
-      }
-
-      const currentClue = gameState.currentWord.clue;
-      const sameDir: Direction = gameState.direction;
-      const nextClueStart = findNextClueStartInDirectionAfter(currentClue, sameDir, puzzleData.clues);
-      if (nextClueStart) {
-        const newWord = findWordForPosition(nextClueStart.row, nextClueStart.col, sameDir, puzzleData.clues, newGrid);
+    // Overwrite behavior: user typed over a filled cell -> advance by one inline regardless of emptiness
+    if (!insertedIntoEmpty) {
+      const next = getNextPositionForOverwriteAdvance(
+        selectedRow,
+        selectedCol,
+        gameState.direction,
+        gameState.currentWord,
+        puzzleData.clues,
+      );
+      if (next) {
+        const newWord = findWordForPosition(next.row, next.col, next.direction, puzzleData.clues, newGrid);
         if (newWord) {
           setGameState(prev => ({
             ...prev,
-            selectedRow: nextClueStart.row,
-            selectedCol: nextClueStart.col,
-            direction: sameDir,
+            selectedRow: next.row,
+            selectedCol: next.col,
+            direction: next.direction,
             currentWord: newWord,
           }));
-          updateGridHighlighting(newGrid, nextClueStart.row, nextClueStart.col, newWord);
-          return;
-        }
-      } else {
-        const otherDir: Direction = sameDir === 'across' ? 'down' : 'across';
-        const firstOtherStart = getFirstClueStartInDirection(otherDir, puzzleData.clues);
-        if (firstOtherStart) {
-          const newWord = findWordForPosition(firstOtherStart.row, firstOtherStart.col, otherDir, puzzleData.clues, newGrid);
-          if (newWord) {
-            setGameState(prev => ({
-              ...prev,
-              selectedRow: firstOtherStart.row,
-              selectedCol: firstOtherStart.col,
-              direction: otherDir,
-              currentWord: newWord,
-            }));
-            updateGridHighlighting(newGrid, firstOtherStart.row, firstOtherStart.col, newWord);
-            return;
-          }
-        }
-      }
-    }
-
-    if (!moved) {
-      // 2) No empty after within this word: find next empty cell in the SAME direction among subsequent clues
-      const currentClue = gameState.currentWord.clue;
-      const sameDir: Direction = gameState.direction;
-
-      const nextBlankSameDir = findNextBlankSpotInDirectionAfter(currentClue, sameDir, puzzleData.clues, newGrid);
-      if (nextBlankSameDir) {
-        const newWord = findWordForPosition(nextBlankSameDir.row, nextBlankSameDir.col, sameDir, puzzleData.clues, newGrid);
-        if (newWord) {
-          setGameState(prev => ({
-            ...prev,
-            selectedRow: nextBlankSameDir.row,
-            selectedCol: nextBlankSameDir.col,
-            direction: sameDir,
-            currentWord: newWord,
-          }));
-          updateGridHighlighting(newGrid, nextBlankSameDir.row, nextBlankSameDir.col, newWord);
+          updateGridHighlighting(newGrid, next.row, next.col, newWord);
           return;
         }
       }
-
-      // 3) Still none: wrap to the first empty cell in the SAME direction
-      const firstEmptySameDir = findFirstEmptySpotInDirection(sameDir, puzzleData.clues, newGrid);
-      if (firstEmptySameDir) {
-        const newWord = findWordForPosition(firstEmptySameDir.row, firstEmptySameDir.col, sameDir, puzzleData.clues, newGrid);
-        if (newWord) {
-          setGameState(prev => ({
-            ...prev,
-            selectedRow: firstEmptySameDir.row,
-            selectedCol: firstEmptySameDir.col,
-            direction: sameDir,
-            currentWord: newWord,
-          }));
-          updateGridHighlighting(newGrid, firstEmptySameDir.row, firstEmptySameDir.col, newWord);
-          return;
-        }
-      }
-
-      // 4) No empty spots in this direction at all: switch to the OTHER direction
-      const otherDir: Direction = sameDir === 'across' ? 'down' : 'across';
-      const firstEmptyOtherDir = findFirstEmptySpotInDirection(otherDir, puzzleData.clues, newGrid);
-      if (firstEmptyOtherDir) {
-        const newWord = findWordForPosition(firstEmptyOtherDir.row, firstEmptyOtherDir.col, otherDir, puzzleData.clues, newGrid);
-        if (newWord) {
-          setGameState(prev => ({
-            ...prev,
-            selectedRow: firstEmptyOtherDir.row,
-            selectedCol: firstEmptyOtherDir.col,
-            direction: otherDir,
-            currentWord: newWord,
-          }));
-          updateGridHighlighting(newGrid, firstEmptyOtherDir.row, firstEmptyOtherDir.col, newWord);
-          return;
-        }
-      }
-
       // Fallback: keep selection
       updateGridHighlighting(newGrid, selectedRow, selectedCol, gameState.currentWord);
+      return;
     }
+
+    // Empty-cell behavior: use helper to compute destination
+    const next = getNextPositionForEmptyAdvance(
+      selectedRow,
+      selectedCol,
+      gameState.direction,
+      gameState.currentWord,
+      puzzleData.clues,
+      newGrid,
+    );
+    if (next) {
+      const newWord = findWordForPosition(next.row, next.col, next.direction, puzzleData.clues, newGrid);
+      if (newWord) {
+        setGameState(prev => ({
+          ...prev,
+          selectedRow: next.row,
+          selectedCol: next.col,
+          direction: next.direction,
+          currentWord: newWord,
+        }));
+        updateGridHighlighting(newGrid, next.row, next.col, newWord);
+        return;
+      }
+    }
+    // Fallback: keep selection
+    updateGridHighlighting(newGrid, selectedRow, selectedCol, gameState.currentWord);
   }, [gameState, puzzleData, completionSeconds, updateGridHighlighting, playBellSound, persistProgress]);
 
   const handleKeyPress = useCallback((key: string) => {
@@ -442,12 +366,13 @@ export default function CrosswordScreen() {
     const { selectedRow, selectedCol } = gameState;
     
     if (newGrid[selectedRow] && newGrid[selectedRow][selectedCol] && !newGrid[selectedRow][selectedCol].isBlack) {
+      const wasEmpty = !newGrid[selectedRow][selectedCol].userLetter;
       newGrid[selectedRow][selectedCol] = {
         ...newGrid[selectedRow][selectedCol],
         userLetter: key.toUpperCase(),
       };
       persistProgress(newGrid, { completionSeconds: gameState.elapsedTime });
-      advanceAfterInput(newGrid, selectedRow, selectedCol);
+      advanceAfterInput(newGrid, selectedRow, selectedCol, wasEmpty);
     }
   }, [grid, gameState, puzzleData, updateGridHighlighting, completionSeconds, persistProgress]);
 
@@ -492,13 +417,14 @@ export default function CrosswordScreen() {
 
     const newGrid = [...grid];
     if (newGrid[selectedRow] && newGrid[selectedRow][selectedCol] && !newGrid[selectedRow][selectedCol].isBlack) {
+      const wasEmpty = !newGrid[selectedRow][selectedCol].userLetter;
       newGrid[selectedRow][selectedCol] = {
         ...newGrid[selectedRow][selectedCol],
         userLetter: String(correctLetter).toUpperCase(),
       };
 
       persistProgress(newGrid, { completionSeconds: gameState.elapsedTime });
-      advanceAfterInput(newGrid, selectedRow, selectedCol);
+      advanceAfterInput(newGrid, selectedRow, selectedCol, wasEmpty);
     }
   }, [puzzleData, gameState, grid, updateGridHighlighting, persistProgress]);
 

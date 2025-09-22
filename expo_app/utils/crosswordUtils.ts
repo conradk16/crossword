@@ -144,6 +144,98 @@ export function findFirstEmptySpotInDirection(
   return null;
 }
 
+// When overwriting a filled cell, advance to the next cell in the current word;
+// if none, go to the next clue in the same direction; otherwise wrap to the
+// first clue of the other direction. Returns null if no move is possible.
+export function getNextPositionForOverwriteAdvance(
+  currentRow: number,
+  currentCol: number,
+  direction: Direction,
+  currentWord: { clue: CrosswordClue; cells: { row: number; col: number }[] },
+  clues: CrosswordClue[],
+): { row: number; col: number; direction: Direction } | null {
+  const nextCellInline = getNextCellInWord(currentRow, currentCol, currentWord.cells);
+  if (nextCellInline) {
+    return { row: nextCellInline.row, col: nextCellInline.col, direction };
+  }
+
+  const nextClueStart = findNextClueStartInDirectionAfter(currentWord.clue, direction, clues);
+  if (nextClueStart) {
+    return { row: nextClueStart.row, col: nextClueStart.col, direction };
+  }
+
+  const otherDir: Direction = direction === 'across' ? 'down' : 'across';
+  const firstOtherStart = getFirstClueStartInDirection(otherDir, clues);
+  if (firstOtherStart) {
+    return { row: firstOtherStart.row, col: firstOtherStart.col, direction: otherDir };
+  }
+
+  return null;
+}
+
+// When typing into an empty cell, advance to the next empty cell using the
+// same rules the screen uses: prefer next empty in current word; if the board
+// has no empties, advance inline/next word; otherwise search next empty in
+// same direction, then wrap, then other direction.
+export function getNextPositionForEmptyAdvance(
+  currentRow: number,
+  currentCol: number,
+  direction: Direction,
+  currentWord: { clue: CrosswordClue; cells: { row: number; col: number }[] },
+  clues: CrosswordClue[],
+  grid: CrosswordCell[][],
+): { row: number; col: number; direction: Direction } | null {
+  // 1) Next empty in current word, after current position
+  const currentIndex = currentWord.cells.findIndex(c => c.row === currentRow && c.col === currentCol);
+  for (let i = currentIndex + 1; i < currentWord.cells.length; i++) {
+    const cellPos = currentWord.cells[i];
+    if (!grid[cellPos.row][cellPos.col].userLetter) {
+      return { row: cellPos.row, col: cellPos.col, direction };
+    }
+  }
+
+  // If entire board has no empty cells, follow inline/next-word flow
+  if (!hasAnyEmptyCells(grid)) {
+    const nextCellInline = getNextCellInWord(currentRow, currentCol, currentWord.cells);
+    if (nextCellInline) {
+      return { row: nextCellInline.row, col: nextCellInline.col, direction };
+    }
+
+    const nextClueStart = findNextClueStartInDirectionAfter(currentWord.clue, direction, clues);
+    if (nextClueStart) {
+      return { row: nextClueStart.row, col: nextClueStart.col, direction };
+    }
+
+    const otherDir: Direction = direction === 'across' ? 'down' : 'across';
+    const firstOtherStart = getFirstClueStartInDirection(otherDir, clues);
+    if (firstOtherStart) {
+      return { row: firstOtherStart.row, col: firstOtherStart.col, direction: otherDir };
+    }
+    return null;
+  }
+
+  // 2) Next empty among subsequent clues in same direction
+  const nextBlankSameDir = findNextBlankSpotInDirectionAfter(currentWord.clue, direction, clues, grid);
+  if (nextBlankSameDir) {
+    return { row: nextBlankSameDir.row, col: nextBlankSameDir.col, direction };
+  }
+
+  // 3) Wrap to first empty in same direction
+  const firstEmptySameDir = findFirstEmptySpotInDirection(direction, clues, grid);
+  if (firstEmptySameDir) {
+    return { row: firstEmptySameDir.row, col: firstEmptySameDir.col, direction };
+  }
+
+  // 4) Switch to other direction, first empty there
+  const otherDir: Direction = direction === 'across' ? 'down' : 'across';
+  const firstEmptyOtherDir = findFirstEmptySpotInDirection(otherDir, clues, grid);
+  if (firstEmptyOtherDir) {
+    return { row: firstEmptyOtherDir.row, col: firstEmptyOtherDir.col, direction: otherDir };
+  }
+
+  return null;
+}
+
 export function formatTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
