@@ -25,9 +25,10 @@ export default function FriendsScreen() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
-  const { token } = useAuth();
+  const { token, syncAuth } = useAuth();
 
   const loadFriends = useCallback(async () => {
+    try { syncAuth().catch(() => {}); } catch {} // fire and forget
     if (!token) {
       setFriends([]);
       setFriendRequests([]);
@@ -56,7 +57,7 @@ export default function FriendsScreen() {
         fromUser: { id: u, username: u },
       })));
     } catch {}
-  }, [token]);
+  }, [token, syncAuth]);
 
   // Refresh friends data and re-render when the tab is focused
   useFocusEffect(

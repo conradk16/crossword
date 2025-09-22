@@ -21,9 +21,10 @@ export default function LeaderboardScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [date, setDate] = useState<string>('');
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
-  const { token } = useAuth();
+  const { token, syncAuth } = useAuth();
 
   const loadLeaderboard = useCallback(async () => {
+    try { syncAuth().catch(() => {}); } catch {} // fire and forget
     if (!token) {
       setLeaderboard([]);
       setDate('');
@@ -59,7 +60,7 @@ export default function LeaderboardScreen() {
         completionTime: r.timeMs != null ? Math.floor(r.timeMs / 1000) : null,
       })));
     } catch {}
-  }, [token]);
+  }, [token, syncAuth]);
 
   // Refresh leaderboard when the tab is focused
   useFocusEffect(

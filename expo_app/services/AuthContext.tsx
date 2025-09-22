@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { loadStoredAuthToken, saveStoredAuthToken, clearStoredAuthToken } from '@/services/storage';
+import { withBaseUrl } from '@/constants/Api';
 
 export type AuthContextValue = {
   token: string | null;
   setAuthToken: (token: string) => Promise<void>;
   clearAuthToken: () => Promise<void>;
+  syncAuth: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -34,11 +36,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
   }, []);
 
+  const handleSyncAuth = useMemo(() => async () => {
+    try {
+      if (!token) return;
+      const response = await fetch(withBaseUrl('/api/profile'), {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.status === 401) {
+        await handleClearAuthToken();
+      }
+    } catch {
+      // ignore network errors; do not change auth state
+    }
+  }, [token, handleClearAuthToken]);
+
   const value = useMemo<AuthContextValue>(() => ({
     token,
     setAuthToken: handleSetAuthToken,
     clearAuthToken: handleClearAuthToken,
-  }), [token, handleSetAuthToken, handleClearAuthToken]);
+    syncAuth: handleSyncAuth,
+  }), [token, handleSetAuthToken, handleClearAuthToken, handleSyncAuth]);
 
   if (!loaded) {
     return null;

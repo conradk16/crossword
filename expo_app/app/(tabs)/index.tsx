@@ -42,7 +42,7 @@ export default function CrosswordScreen() {
   const [stickyKeyboardHeight, setStickyKeyboardHeight] = useState(0);
   const loadRequestIdRef = useRef(0);
   const puzzleDateRef = useRef<string | null>(null);
-  const { token } = useAuth();
+  const { token, syncAuth } = useAuth();
   
 
   // Function to play bell sound when puzzle is completed
@@ -97,6 +97,7 @@ export default function CrosswordScreen() {
   }, []);
 
   const loadPuzzle = useCallback(async (options?: { background?: boolean }) => {
+    try { syncAuth().catch(() => {}); } catch {} // fire and forget
     const background = options?.background === true;
     const myId = ++loadRequestIdRef.current;
     if (!background) {
@@ -182,7 +183,7 @@ export default function CrosswordScreen() {
         setLoading(false);
       }
     }
-  }, [updateGridHighlighting]);
+  }, [updateGridHighlighting, syncAuth]);
 
   const handleCellPress = useCallback((row: number, col: number) => {
     if (!puzzleData || grid[row][col].isBlack) return;

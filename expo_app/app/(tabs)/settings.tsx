@@ -35,7 +35,7 @@ export default function SettingsScreen() {
   const [usernameLoading, setUsernameLoading] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
-  const { token, setAuthToken, clearAuthToken } = useAuth();
+  const { token, setAuthToken, clearAuthToken, syncAuth } = useAuth();
 
   const isEmailInvalid = useMemo(() => {
     const trimmed = email.trim();
@@ -49,6 +49,7 @@ export default function SettingsScreen() {
   const isEditingUsername = editingUsername || (!!profile && !profile?.username);
 
   const refreshUserProfile = useCallback(async () => {
+    try { syncAuth().catch(() => {}); } catch {} // fire and forget
     setMeError(null);
     try {
       const headers = getAuthHeaders(token);
@@ -64,7 +65,7 @@ export default function SettingsScreen() {
     } catch (e) {
       setMeError('Failed to load profile');
     }
-  }, [token]);
+  }, [token, syncAuth]);
 
   useFocusEffect(
     React.useCallback(() => {
