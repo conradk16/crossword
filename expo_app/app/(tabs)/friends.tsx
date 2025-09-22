@@ -62,6 +62,11 @@ export default function FriendsScreen() {
     }, [loadFriends])
   );
 
+  // Background refresh when auth token changes (pure context approach)
+  useEffect(() => {
+    loadFriends();
+  }, [token, loadFriends]);
+
   const onSearch = useCallback(async () => {
     setError(null);
     try {

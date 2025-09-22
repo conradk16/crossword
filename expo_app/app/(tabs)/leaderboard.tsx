@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -72,6 +72,11 @@ export default function LeaderboardScreen() {
       return () => {};
     }, [loadLeaderboard])
   );
+
+  // Background refresh when auth token changes (pure context approach)
+  useEffect(() => {
+    loadLeaderboard();
+  }, [token, loadLeaderboard]);
 
   // Show login prompt if not authenticated
   if (!token) {
