@@ -72,6 +72,19 @@ export function getNextCellInWord(
   return null;
 }
 
+// Returns the previous cell within the same word, or null if at start
+export function getPrevCellInWord(
+  currentRow: number,
+  currentCol: number,
+  wordCells: { row: number; col: number }[],
+): { row: number; col: number } | null {
+  const currentIndex = wordCells.findIndex(cell => cell.row === currentRow && cell.col === currentCol);
+  if (currentIndex > 0) {
+    return wordCells[currentIndex - 1];
+  }
+  return null;
+}
+
 function getOrderedCluesByDirection(clues: CrosswordClue[], direction: Direction): CrosswordClue[] {
   const filtered = clues.filter(c => c.direction === direction);
   if (direction === 'across') {
@@ -240,6 +253,56 @@ export function formatTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Compute the previous position to move to when handling backspace.
+// The behavior mirrors a simple "step back":
+// 1) Previous cell within current word; else
+// 2) Last cell of previous clue in same direction; else
+// 3) Wrap to last cell of last clue in same direction; else
+// 4) Wrap to last cell of last clue in the other direction.
+export function getPrevPositionForBackspace(
+  currentRow: number,
+  currentCol: number,
+  direction: Direction,
+  currentWord: { clue: CrosswordClue; cells: { row: number; col: number }[] },
+  clues: CrosswordClue[],
+): { row: number; col: number; direction: Direction } | null {
+  // Previous within the same word
+  const prevCell = getPrevCellInWord(currentRow, currentCol, currentWord.cells);
+  if (prevCell) {
+    return { row: prevCell.row, col: prevCell.col, direction };
+  }
+
+  // Previous clue in same direction
+  const ordered = getOrderedCluesByDirection(clues, direction);
+  const index = ordered.findIndex(c => areCluesSame(c, currentWord.clue));
+  if (index > 0) {
+    const prevClue = ordered[index - 1];
+    const row = direction === 'across' ? prevClue.row : prevClue.row + prevClue.length - 1;
+    const col = direction === 'across' ? prevClue.col + prevClue.length - 1 : prevClue.col;
+    return { row, col, direction };
+  }
+
+  // Wrap to last clue in same direction
+  if (ordered.length > 0) {
+    const last = ordered[ordered.length - 1];
+    const row = direction === 'across' ? last.row : last.row + last.length - 1;
+    const col = direction === 'across' ? last.col + last.length - 1 : last.col;
+    return { row, col, direction };
+  }
+
+  // Fallback: last clue in the other direction
+  const otherDir: Direction = direction === 'across' ? 'down' : 'across';
+  const orderedOther = getOrderedCluesByDirection(clues, otherDir);
+  if (orderedOther.length > 0) {
+    const last = orderedOther[orderedOther.length - 1];
+    const row = otherDir === 'across' ? last.row : last.row + last.length - 1;
+    const col = otherDir === 'across' ? last.col + last.length - 1 : last.col;
+    return { row, col, direction: otherDir };
+  }
+
+  return null;
 }
 
 export function isPuzzleComplete(grid: CrosswordCell[][], puzzleData: CrosswordData): boolean {

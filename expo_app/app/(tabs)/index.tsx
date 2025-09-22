@@ -16,7 +16,7 @@ import { CrosswordHeader } from '@/components/CrosswordHeader';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 
 import { CrosswordData, CrosswordCell, Direction, GameState } from '@/types/crossword';
-import { convertGridToCells, findWordForPosition, isPuzzleComplete, findNextBlankSpotInDirectionAfter, findNextClueStartInDirectionAfter, findFirstEmptySpotInDirection, getNextCellInWord, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection, getNextPositionForOverwriteAdvance, getNextPositionForEmptyAdvance } from '@/utils/crosswordUtils';
+import { convertGridToCells, findWordForPosition, isPuzzleComplete, findNextBlankSpotInDirectionAfter, findNextClueStartInDirectionAfter, findFirstEmptySpotInDirection, getNextCellInWord, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection, getNextPositionForOverwriteAdvance, getNextPositionForEmptyAdvance, getPrevPositionForBackspace } from '@/utils/crosswordUtils';
 
 export default function CrosswordScreen() {
   const [puzzleData, setPuzzleData] = useState<CrosswordData | null>(null);
@@ -379,18 +379,46 @@ export default function CrosswordScreen() {
   const handleBackspace = useCallback(() => {
     if (!gameState.currentWord) return;
 
-    const newGrid = [...grid];
     const { selectedRow, selectedCol } = gameState;
-    
+    const newGrid = [...grid];
+
     if (newGrid[selectedRow] && newGrid[selectedRow][selectedCol] && !newGrid[selectedRow][selectedCol].isBlack) {
+      // Clear current cell
       newGrid[selectedRow][selectedCol] = {
         ...newGrid[selectedRow][selectedCol],
         userLetter: '',
       };
+
+      // Compute previous position following backspace rules
+      const prev = getPrevPositionForBackspace(
+        selectedRow,
+        selectedCol,
+        gameState.direction,
+        gameState.currentWord,
+        puzzleData?.clues || [],
+      );
+
+      if (prev) {
+        const newWord = puzzleData ? findWordForPosition(prev.row, prev.col, prev.direction, puzzleData.clues, newGrid) : null;
+        if (newWord) {
+          setGameState(prevState => ({
+            ...prevState,
+            selectedRow: prev.row,
+            selectedCol: prev.col,
+            direction: prev.direction,
+            currentWord: newWord,
+          }));
+          persistProgress(newGrid, { completionSeconds: gameState.elapsedTime });
+          updateGridHighlighting(newGrid, prev.row, prev.col, newWord);
+          return;
+        }
+      }
+
+      // Fallback: keep selection if no previous position found
       persistProgress(newGrid, { completionSeconds: gameState.elapsedTime });
       updateGridHighlighting(newGrid, selectedRow, selectedCol, gameState.currentWord);
     }
-  }, [grid, gameState, updateGridHighlighting, persistProgress]);
+  }, [grid, gameState, puzzleData, updateGridHighlighting, persistProgress]);
 
   const handleTextInput = useCallback((text: string) => {
     if (text.length > 0) {
