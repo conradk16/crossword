@@ -68,37 +68,6 @@ export default function SettingsScreen() {
     } catch {}
   }, [token, syncAuth, syncFriendRequestCount]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      if (token) {
-        refreshUserProfile();
-      }
-      return () => {};
-    }, [refreshUserProfile, token])
-  );
-
-  // Resend countdown timer (1-minute cooldown from last send)
-  useEffect(() => {
-    if (step !== 'enterOtp') {
-      setResendRemainingSeconds(0);
-      return;
-    }
-    const lastSent = otpLastSentByEmail[normalizedEmail];
-    if (!lastSent) {
-      setResendRemainingSeconds(0);
-      return;
-    }
-    const update = () => {
-      const elapsedMs = Date.now() - lastSent;
-      const remainingMs = Math.max(0, 60000 - elapsedMs);
-      const remainingSeconds = Math.ceil(remainingMs / 1000);
-      setResendRemainingSeconds(remainingSeconds);
-    };
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [step, normalizedEmail, otpLastSentByEmail]);
-
   const sendOtp = useCallback(async (forceResend: boolean = false) => {
     setSubmitError(null);
     setSubmitMessage(null);
@@ -186,8 +155,6 @@ export default function SettingsScreen() {
       setSubmitLoading(false);
     }
   }, [email, otp, refreshUserProfile, setAuthToken]);
-
-  
 
   const onLogout = useCallback(async () => {
     setSubmitError(null);
@@ -302,6 +269,38 @@ export default function SettingsScreen() {
     setUsernameInput('');
     setUsernameError(null);
   }, []);
+
+  // Resend countdown timer (1-minute cooldown from last send)
+  useEffect(() => {
+    if (step !== 'enterOtp') {
+      setResendRemainingSeconds(0);
+      return;
+    }
+    const lastSent = otpLastSentByEmail[normalizedEmail];
+    if (!lastSent) {
+      setResendRemainingSeconds(0);
+      return;
+    }
+    const update = () => {
+      const elapsedMs = Date.now() - lastSent;
+      const remainingMs = Math.max(0, 60000 - elapsedMs);
+      const remainingSeconds = Math.ceil(remainingMs / 1000);
+      setResendRemainingSeconds(remainingSeconds);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [step, normalizedEmail, otpLastSentByEmail]);
+
+  // refresh profile on focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (token) {
+        refreshUserProfile();
+      }
+      return () => {};
+    }, [refreshUserProfile, token])
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

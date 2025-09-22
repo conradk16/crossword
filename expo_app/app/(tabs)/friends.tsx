@@ -54,19 +54,6 @@ export default function FriendsScreen() {
     } catch {}
   }, [token, syncAuth, syncFriendRequestCount]);
 
-  // Refresh friends data and re-render when the tab is focused
-  useFocusEffect(
-    useCallback(() => {
-      loadFriends();
-      return () => {};
-    }, [loadFriends])
-  );
-
-  // Background refresh when auth token changes (pure context approach)
-  useEffect(() => {
-    loadFriends();
-  }, [token, loadFriends]);
-
   const onSearch = useCallback(async () => {
     setError(null);
     try {
@@ -102,21 +89,6 @@ export default function FriendsScreen() {
       setSearchLoading(false);
     }
   }, [query, token]);
-
-  // Auto-search as user types (debounced)
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      const q = query.trim();
-      if (q.length === 0) {
-        setSearchResults([]);
-        setLastSearchedQuery('');
-        setSearchLoading(false);
-        return;
-      }
-      onSearch();
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [query, onSearch]);
 
   const handleSendRequest = useCallback(async (recipientId: string) => {
     Keyboard.dismiss();
@@ -176,6 +148,34 @@ export default function FriendsScreen() {
       setError(e instanceof Error ? e.message : 'Failed to update request');
     }
   }, [loadFriends, token]);
+
+  // Background refresh when auth token changes (pure context approach)
+  useEffect(() => {
+    loadFriends();
+  }, [token, loadFriends]);
+
+  // Auto-search as user types (debounced)
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      const q = query.trim();
+      if (q.length === 0) {
+        setSearchResults([]);
+        setLastSearchedQuery('');
+        setSearchLoading(false);
+        return;
+      }
+      onSearch();
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [query, onSearch]);
+
+  // Refresh friends data and re-render when the tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadFriends();
+      return () => {};
+    }, [loadFriends])
+  );
 
   // Show login prompt if not authenticated
   if (!token) {
