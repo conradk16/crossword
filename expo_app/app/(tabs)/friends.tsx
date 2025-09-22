@@ -6,13 +6,12 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
+import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
 import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 
 type User = { id: string; username: string };
-type Friend = { id: string; username: string };
 type FriendRequest = { requestId: string; fromUser: { id: string; username: string } };
 
 export default function FriendsScreen() {
@@ -22,7 +21,6 @@ export default function FriendsScreen() {
   const [lastSearchedQuery, setLastSearchedQuery] = useState('');
   const searchTokenRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
-  const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
@@ -33,15 +31,13 @@ export default function FriendsScreen() {
     try { syncAuth().catch(() => {}); } catch {} // ignore failures
     try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
     if (!token) {
-      setFriends([]);
       setFriendRequests([]);
       setCurrentUsername(null);
       return;
     }
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [friendsResponse, requestsResponse, profileResponse] = await Promise.all([
-        fetch(withBaseUrl('/api/friends'), { headers }),
+      const [requestsResponse, profileResponse] = await Promise.all([
         fetch(withBaseUrl('/api/friends/requests'), { headers }),
         fetch(withBaseUrl('/api/profile'), { headers }),
       ]);
@@ -50,11 +46,7 @@ export default function FriendsScreen() {
         const profile: { username?: string | null } = await profileResponse.json();
         setCurrentUsername(profile?.username ?? null);
       }
-
-      const friendsUsernames: string[] = friendsResponse.ok ? await friendsResponse.json() : [];
       const incomingUsernames: string[] = requestsResponse.ok ? await requestsResponse.json() : [];
-
-      setFriends((friendsUsernames || []).map((u) => ({ id: u, username: u })));
       setFriendRequests((incomingUsernames || []).map((u, i) => ({
         requestId: `req-${i + 1}-${u}`,
         fromUser: { id: u, username: u },
@@ -304,24 +296,7 @@ export default function FriendsScreen() {
         />
       </View>
 
-      {/* Friends (only show when there are friends) */}
-      {friends.length > 0 && (
-        <View style={styles.sectionSmallGapBottom}>
-          <ThemedText style={styles.sectionTitle}>Friends</ThemedText>
-          <FlatList
-            contentContainerStyle={styles.listContent}
-            data={friends}
-            keyExtractor={(u) => u.id}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            renderItem={({ item }) => (
-              <ThemedView style={styles.row}>
-                <ThemedText style={styles.username}>{item.username}</ThemedText>
-              </ThemedView>
-            )}
-          />
-        </View>
-      )}
+      {/* Friends list removed */}
         </Pressable>
     </SafeAreaView>
   );
@@ -345,11 +320,6 @@ const styles = StyleSheet.create({
   sectionSmallGap: {
     paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
     marginTop: 15,
-  },
-  sectionSmallGapBottom: {
-    paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
-    marginTop: 15,
-    paddingBottom: CONTENT_BOTTOM_PADDING,
   },
   sectionTitle: {
     fontSize: 16,
