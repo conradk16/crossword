@@ -208,6 +208,15 @@ export default function SettingsScreen() {
       }
       await clearAuthToken();
       setProfile(null);
+      // Reset auth form state so we return to the regular login (email) page
+      setStep('enterEmail');
+      setEmail('');
+      setOtp('');
+      setSubmitMessage(null);
+      setSubmitError(null);
+      setEmailErrorVisible(false);
+      setOtpAttemptsRemaining(null);
+      setResendRemainingSeconds(0);
       setLogoutLoading(false);
     }
   }, [profile?.email, token, clearAuthToken]);
