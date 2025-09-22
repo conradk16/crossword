@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { HEADER_BOTTOM_MARGIN, HEADER_TOP_MARGIN, SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 import { formatTime } from '@/utils/crosswordUtils';
 import { useAuth } from '@/services/AuthContext';
+import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 
 type LeaderboardEntry = {
   rank: number;
@@ -22,9 +23,11 @@ export default function LeaderboardScreen() {
   const [date, setDate] = useState<string>('');
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const { token, syncAuth } = useAuth();
+  const { syncFriendRequestCount } = useFriendRequestCount();
 
   const loadLeaderboard = useCallback(async () => {
-    try { syncAuth().catch(() => {}); } catch {} // fire and forget
+    try { syncAuth().catch(() => {}); } catch {} // ignore failures
+    try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
     if (!token) {
       setLeaderboard([]);
       setDate('');
@@ -60,7 +63,7 @@ export default function LeaderboardScreen() {
         completionTime: r.timeMs != null ? Math.floor(r.timeMs / 1000) : null,
       })));
     } catch {}
-  }, [token, syncAuth]);
+  }, [token, syncAuth, syncFriendRequestCount]);
 
   // Refresh leaderboard when the tab is focused
   useFocusEffect(

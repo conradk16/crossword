@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
+import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 
 type User = { id: string; username: string };
 type Friend = { id: string; username: string };
@@ -26,9 +27,11 @@ export default function FriendsScreen() {
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [addedUsernames, setAddedUsernames] = useState<Set<string>>(new Set());
   const { token, syncAuth } = useAuth();
+  const { syncFriendRequestCount } = useFriendRequestCount();
 
   const loadFriends = useCallback(async () => {
-    try { syncAuth().catch(() => {}); } catch {} // fire and forget
+    try { syncAuth().catch(() => {}); } catch {} // ignore failures
+    try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
     if (!token) {
       setFriends([]);
       setFriendRequests([]);
@@ -57,7 +60,7 @@ export default function FriendsScreen() {
         fromUser: { id: u, username: u },
       })));
     } catch {}
-  }, [token, syncAuth]);
+  }, [token, syncAuth, syncFriendRequestCount]);
 
   // Refresh friends data and re-render when the tab is focused
   useFocusEffect(

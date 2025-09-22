@@ -7,9 +7,11 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { count: friendRequestCount } = useFriendRequestCount();
 
   return (
     <Tabs
@@ -45,6 +47,8 @@ export default function TabLayout() {
         options={{
           title: 'Friends',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
+          tabBarBadge: friendRequestCount > 0 ? friendRequestCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: 'red' },
         }}
       />
       <Tabs.Screen
@@ -53,7 +57,6 @@ export default function TabLayout() {
           title: 'Account',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
           freezeOnBlur: true,
-          unmountOnBlur: false,
         }}
       />
     </Tabs>

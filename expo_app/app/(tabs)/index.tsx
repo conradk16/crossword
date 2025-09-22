@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Audio } from 'expo-av';
 import { loadPuzzleState, savePuzzleState } from '@/services/storage';
+import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
 
@@ -43,6 +44,7 @@ export default function CrosswordScreen() {
   const [, setCurrentLoadController] = useState<AbortController | null>(null);
   const [lastLoadedDate, setLastLoadedDate] = useState<string | null>(null);
   const { token, syncAuth } = useAuth();
+  const { syncFriendRequestCount } = useFriendRequestCount();
   
 
   // Function to play bell sound when puzzle is completed
@@ -97,7 +99,8 @@ export default function CrosswordScreen() {
   }, []);
 
   const loadPuzzle = useCallback(async (options?: { background?: boolean }) => {
-    try { syncAuth().catch(() => {}); } catch {} // fire and forget
+    try { syncAuth().catch(() => {}); } catch {} // ignore failures
+    try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
     const background = options?.background === true;
     if (!background) {
       setLoading(true);
@@ -183,7 +186,7 @@ export default function CrosswordScreen() {
         setLoading(false);
       }
     }
-  }, [updateGridHighlighting, syncAuth, lastLoadedDate]);
+  }, [updateGridHighlighting, syncAuth, syncFriendRequestCount, lastLoadedDate]);
 
   const handleCellPress = useCallback((row: number, col: number) => {
     if (!puzzleData || grid[row][col].isBlack) return;

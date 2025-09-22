@@ -9,6 +9,7 @@ import { useAuth } from '@/services/AuthContext';
 import { getAuthHeaders } from '@/utils/authUtils';
 import { withBaseUrl } from '@/constants/Api';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
+import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -36,6 +37,7 @@ export default function SettingsScreen() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
   const { token, setAuthToken, clearAuthToken, syncAuth } = useAuth();
+  const { syncFriendRequestCount } = useFriendRequestCount();
 
   const isEmailInvalid = useMemo(() => {
     const trimmed = email.trim();
@@ -49,7 +51,8 @@ export default function SettingsScreen() {
   const isEditingUsername = editingUsername || (!!profile && !profile?.username);
 
   const refreshUserProfile = useCallback(async () => {
-    try { syncAuth().catch(() => {}); } catch {} // fire and forget
+    try { syncAuth().catch(() => {}); } catch {} // ignore failures
+    try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
     setMeError(null);
     try {
       const headers = getAuthHeaders(token);
@@ -65,7 +68,7 @@ export default function SettingsScreen() {
     } catch (e) {
       setMeError('Failed to load profile');
     }
-  }, [token, syncAuth]);
+  }, [token, syncAuth, syncFriendRequestCount]);
 
   useFocusEffect(
     React.useCallback(() => {
