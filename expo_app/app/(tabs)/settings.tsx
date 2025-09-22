@@ -10,6 +10,7 @@ import { getAuthHeaders } from '@/utils/authUtils';
 import { withBaseUrl } from '@/constants/Api';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
+import { getFriendlyError } from '@/utils/errorUtils';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isNetworkSubmitError, setIsNetworkSubmitError] = useState(false);
   const [emailErrorVisible, setEmailErrorVisible] = useState(false);
   const [otpAttemptsRemaining, setOtpAttemptsRemaining] = useState<number | null>(null);
   const [otpLastSentByEmail, setOtpLastSentByEmail] = useState<Record<string, number>>({});
@@ -72,6 +74,7 @@ export default function SettingsScreen() {
 
   const sendOtp = useCallback(async (forceResend: boolean = false) => {
     setSubmitError(null);
+    setIsNetworkSubmitError(false);
     setSubmitMessage(null);
     setOtpAttemptsRemaining(null);
     const trimmed = email.trim();
@@ -106,7 +109,9 @@ export default function SettingsScreen() {
       setSubmitMessage(json?.message || 'Check your email for the one-time passcode');
       setStep('enterOtp');
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : 'Failed to send one-time passcode');
+      const { message, isNetwork } = getFriendlyError(e, 'Failed to send one-time passcode');
+      setIsNetworkSubmitError(isNetwork);
+      setSubmitError(message);
     } finally {
       setSubmitLoading(false);
     }
@@ -115,6 +120,7 @@ export default function SettingsScreen() {
   const completeAuth = useCallback(async () => {
     setSubmitError(null);
     setSubmitMessage(null);
+    setIsNetworkSubmitError(false);
     try {
       setSubmitLoading(true);
       const verificationStart = Date.now();
@@ -152,7 +158,9 @@ export default function SettingsScreen() {
         await new Promise((resolve) => setTimeout(resolve, minVerifyMs - elapsed));
       }
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : 'Authentication failed');
+      const { message, isNetwork } = getFriendlyError(e, 'Authentication failed');
+      setIsNetworkSubmitError(isNetwork);
+      setSubmitError(message);
     } finally {
       setSubmitLoading(false);
     }
@@ -254,7 +262,8 @@ export default function SettingsScreen() {
       setEditingUsername(false);
       setUsernameInput('');
     } catch (error) {
-      setUsernameError(error instanceof Error ? error.message : 'Failed to update username');
+      const { message } = getFriendlyError(error, 'Failed to update username');
+      setUsernameError(message);
     } finally {
       setUsernameLoading(false);
     }
@@ -297,6 +306,8 @@ export default function SettingsScreen() {
   // refresh profile on focus
   useFocusEffect(
     React.useCallback(() => {
+      setIsNetworkSubmitError(false);
+      setSubmitError(null);
       let cancelled = false;
       const run = async () => {
         if (!hasLoadedOnce) {
@@ -403,7 +414,7 @@ export default function SettingsScreen() {
                   </View>
                 </View>
                 {usernameError && (
-                  <ThemedText style={styles.inputError}>{usernameError}</ThemedText>
+                  <ThemedText style={[styles.inputError, styles.usernameErrorText]}>{usernameError}</ThemedText>
                 )}
               </View>
             )}
@@ -436,7 +447,11 @@ export default function SettingsScreen() {
                 <Pressable style={styles.buttonPrimary} onPress={() => sendOtp()} disabled={submitLoading || email.trim().length === 0}>
                   <ThemedText style={styles.buttonPrimaryText}>{submitLoading ? 'Sending…' : 'Login/Register'}</ThemedText>
                 </Pressable>
-                {submitError && <ThemedText style={styles.errorText}>Error: {submitError}</ThemedText>}
+                {submitError && (
+                  <ThemedText style={isNetworkSubmitError ? [styles.inputError, styles.usernameErrorText] : styles.errorText}>
+                    {isNetworkSubmitError ? submitError : `Error: ${submitError}`}
+                  </ThemedText>
+                )}
                 {submitMessage && <ThemedText style={styles.muted}>{submitMessage}</ThemedText>}
               </View>
             )}
@@ -462,7 +477,7 @@ export default function SettingsScreen() {
                         : `Incorrect code. Please be careful — ${otpAttemptsRemaining} attempt${otpAttemptsRemaining === 1 ? '' : 's'} remaining today.`}
                     </ThemedText>
                   ) : submitError ? (
-                    <ThemedText style={styles.inputError}>{submitError}</ThemedText>
+                    <ThemedText style={isNetworkSubmitError ? [styles.inputError, styles.usernameErrorText] : styles.inputError}>{submitError}</ThemedText>
                   ) : null}
                 </View>
                 <View style={styles.actionsRow}>
@@ -628,6 +643,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#FF3B30',
   },
+  infoText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#000',
+  },
   loadingText: {
     fontSize: 18,
     textAlign: 'center',
@@ -640,6 +660,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#FF3B30',
     paddingLeft: 12,
+  },
+  usernameErrorText: {
+    color: '#000',
   },
   rowRight: {
     flexDirection: 'row',

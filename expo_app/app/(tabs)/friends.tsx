@@ -10,6 +10,7 @@ import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
 import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
+import { getFriendlyError } from '@/utils/errorUtils';
 
 type User = { id: string; username: string };
 type FriendRequest = { requestId: string; fromUser: { id: string; username: string } };
@@ -21,6 +22,7 @@ export default function FriendsScreen() {
   const [lastSearchedQuery, setLastSearchedQuery] = useState('');
   const searchTokenRef = useRef(0);
   const [error, setError] = useState<string | null>(null);
+  const [isSearchNetworkError, setIsSearchNetworkError] = useState(false);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -58,6 +60,7 @@ export default function FriendsScreen() {
 
   const onSearch = useCallback(async () => {
     setError(null);
+    setIsSearchNetworkError(false);
     try {
       const trimmed = query.trim();
       if (trimmed.length === 0) {
@@ -86,7 +89,9 @@ export default function FriendsScreen() {
       setSearchResults((data || []).map((u) => ({ id: u, username: u })));
       setLastSearchedQuery(trimmed);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Search failed');
+      const { message, isNetwork } = getFriendlyError(e, 'Search failed');
+      setIsSearchNetworkError(isNetwork);
+      setError(message);
     } finally {
       setSearchLoading(false);
     }
@@ -95,6 +100,7 @@ export default function FriendsScreen() {
   const handleSendRequest = useCallback(async (recipientId: string) => {
     Keyboard.dismiss();
     setError(null);
+    setIsSearchNetworkError(false);
     
     if (!token) return;
     
@@ -121,13 +127,16 @@ export default function FriendsScreen() {
       await loadFriends();
       await onSearch();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to send request');
+      const { message, isNetwork } = getFriendlyError(e, 'Failed to send request');
+      setIsSearchNetworkError(isNetwork);
+      setError(message);
     }
   }, [onSearch, loadFriends, token]);
 
   const handleActOnRequest = useCallback(async (requestId: string, action: 'accept' | 'decline') => {
     Keyboard.dismiss();
     setError(null);
+    setIsSearchNetworkError(false);
     
     if (!token) return;
     
@@ -147,7 +156,9 @@ export default function FriendsScreen() {
       
       await loadFriends();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update request');
+      const { message, isNetwork } = getFriendlyError(e, 'Failed to update request');
+      setIsSearchNetworkError(isNetwork);
+      setError(message);
     }
   }, [loadFriends, token]);
 
@@ -174,6 +185,8 @@ export default function FriendsScreen() {
   // Refresh friends data and re-render when the tab is focused
   useFocusEffect(
     useCallback(() => {
+      setIsSearchNetworkError(false);
+      setError(null);
       let cancelled = false;
       const run = async () => {
         if (!hasLoadedOnce) {
@@ -293,9 +306,6 @@ export default function FriendsScreen() {
           />
           {searchLoading && <ActivityIndicator size="small" color="#8E8E93" />}
         </View>
-        {error && (
-          <ThemedText style={styles.errorText}>Error: {error}</ThemedText>
-        )}
         <FlatList
           contentContainerStyle={styles.listContent}
           data={searchResults}
@@ -331,6 +341,13 @@ export default function FriendsScreen() {
       </View>
 
       {/* Friends list removed */}
+      {error && (
+        <View style={styles.section}>
+          <ThemedText style={isSearchNetworkError ? styles.infoText : styles.errorText}>
+            {isSearchNetworkError ? error : `Error: ${error}`}
+          </ThemedText>
+        </View>
+      )}
         </Pressable>
     </SafeAreaView>
   );
@@ -456,7 +473,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#FF3B30',
-    marginTop: 6,
+    marginTop: 0,
+  },
+  infoText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#000',
+    marginTop: 0,
   },
   loadingText: {
     fontSize: 18,
