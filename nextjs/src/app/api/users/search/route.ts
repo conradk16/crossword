@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
            WHERE f.user_id = $2 AND f.friend_user_id = u.user_id
          )
        ORDER BY u.username ASC
-       LIMIT 10`,
+       LIMIT 3`,
       [like, user.user_id]
     );
 
