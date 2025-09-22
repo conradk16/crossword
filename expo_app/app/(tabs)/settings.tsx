@@ -72,9 +72,11 @@ export default function SettingsScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      refreshUserProfile();
+      if (token) {
+        refreshUserProfile();
+      }
       return () => {};
-    }, [refreshUserProfile])
+    }, [refreshUserProfile, token])
   );
 
   // Resend countdown timer (1-minute cooldown from last send)
