@@ -33,15 +33,15 @@ export default function CrosswordScreen() {
   const [inputValue, setInputValue] = useState('');
   const textInputRef = useRef<TextInput>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const [isPuzzleSolved, setIsPuzzleSolved] = useState(false);
+  const [completionSeconds, setCompletionSeconds] = useState<number | null>(null);
   const [shouldRefocus, setShouldRefocus] = useState(true);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [stickyKeyboardHeight, setStickyKeyboardHeight] = useState(0);
-  const loadRequestIdRef = useRef(0);
-  const puzzleDateRef = useRef<string | null>(null);
+  const [, setCurrentLoadController] = useState<AbortController | null>(null);
+  const [lastLoadedDate, setLastLoadedDate] = useState<string | null>(null);
   const { token, syncAuth } = useAuth();
   
 
@@ -99,33 +99,33 @@ export default function CrosswordScreen() {
   const loadPuzzle = useCallback(async (options?: { background?: boolean }) => {
     try { syncAuth().catch(() => {}); } catch {} // fire and forget
     const background = options?.background === true;
-    const myId = ++loadRequestIdRef.current;
     if (!background) {
       setLoading(true);
       setError(null);
     }
 
     try {
-      const response = await fetch(withBaseUrl('/api/puzzles/daily'));
+      // Abort any in-flight request and start a fresh one
+      const controller = new AbortController();
+      setCurrentLoadController(prev => {
+        try { prev?.abort(); } catch {}
+        return controller;
+      });
+
+      const response = await fetch(withBaseUrl('/api/puzzles/daily'), { signal: controller.signal });
       if (!response.ok) {
         throw new Error('Failed to fetch puzzle');
       }
       const data: CrosswordData = await response.json();
 
-      // If a newer load started, ignore this one
-      if (myId !== loadRequestIdRef.current) return;
-
       // If first load or the date changed, hydrate grid and selection
-      const isNewOrChanged = puzzleDateRef.current !== data.date;
+      const isNewOrChanged = lastLoadedDate !== data.date;
       setPuzzleData(data);
-
       if (isNewOrChanged) {
         const baseGrid = convertGridToCells(data);
 
         // Try to hydrate with saved state for this date
         let hydratedGrid = baseGrid;
-        let isPreviouslyCompleted = false;
-        let savedCompletionSeconds = 0;
         try {
           const saved = await loadPuzzleState(data.date);
           if (saved && Array.isArray(saved.letters)) {
@@ -140,8 +140,7 @@ export default function CrosswordScreen() {
             );
           }
           if (saved?.completionSeconds && saved.completionSeconds > 0) {
-            isPreviouslyCompleted = true;
-            savedCompletionSeconds = saved.completionSeconds;
+            setCompletionSeconds(saved.completionSeconds);
           }
         } catch {}
 
@@ -160,30 +159,31 @@ export default function CrosswordScreen() {
           direction: start.direction,
           currentWord: initialWord,
           puzzleDate: data.date,
-          elapsedTime: isPreviouslyCompleted ? savedCompletionSeconds : 0,
+          elapsedTime: completionSeconds ? completionSeconds : 0,
         }));
 
         updateGridHighlighting(hydratedGrid, start.row, start.col, initialWord);
-
-        // Preserve solved state if previously completed
-        setIsPuzzleSolved(isPreviouslyCompleted);
-
-        // If already solved, ensure completion time is synced
-        if (isPreviouslyCompleted && !background) {
-          persistProgress(hydratedGrid, { completionSeconds: savedCompletionSeconds });
-        }
       }
 
-      // Track latest date to keep loader stable without state dependency
-      puzzleDateRef.current = data.date;
+      // If solved, ensure completion time is synced
+      if (completionSeconds) {
+        persistProgress(grid, { completionSeconds: completionSeconds });
+      }
+
+      // Track latest date
+      setLastLoadedDate(data.date);
     } catch (err) {
+      // Ignore abort errors from canceled requests
+      if ((err as any)?.name === 'AbortError') {
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to load puzzle');
     } finally {
       if (!background) {
         setLoading(false);
       }
     }
-  }, [updateGridHighlighting, syncAuth]);
+  }, [updateGridHighlighting, syncAuth, lastLoadedDate]);
 
   const handleCellPress = useCallback((row: number, col: number) => {
     if (!puzzleData || grid[row][col].isBlack) return;
@@ -272,13 +272,13 @@ export default function CrosswordScreen() {
 
     // Check if puzzle is complete
     const puzzleComplete = isPuzzleComplete(newGrid, puzzleData);
-    if (puzzleComplete && !isPuzzleSolved) {
+    if (puzzleComplete && !completionSeconds) {
       const finalElapsed = gameState.elapsedTime;
       setGameState(prev => ({
         ...prev,
         elapsedTime: finalElapsed,
       }));
-      setIsPuzzleSolved(true);
+      setCompletionSeconds(finalElapsed);
       setShowCompletionModal(true);
       playBellSound();
       
@@ -420,7 +420,7 @@ export default function CrosswordScreen() {
       // Fallback: keep selection
       updateGridHighlighting(newGrid, selectedRow, selectedCol, gameState.currentWord);
     }
-  }, [gameState, puzzleData, isPuzzleSolved, updateGridHighlighting, playBellSound, persistProgress]);
+  }, [gameState, puzzleData, completionSeconds, updateGridHighlighting, playBellSound, persistProgress]);
 
   const handleKeyPress = useCallback((key: string) => {
     if (!gameState.currentWord || !puzzleData) return;
@@ -436,7 +436,7 @@ export default function CrosswordScreen() {
       persistProgress(newGrid, { completionSeconds: gameState.elapsedTime });
       advanceAfterInput(newGrid, selectedRow, selectedCol);
     }
-  }, [grid, gameState, puzzleData, updateGridHighlighting, isPuzzleSolved, persistProgress]);
+  }, [grid, gameState, puzzleData, updateGridHighlighting, completionSeconds, persistProgress]);
 
   const handleBackspace = useCallback(() => {
     if (!gameState.currentWord) return;
@@ -516,7 +516,7 @@ export default function CrosswordScreen() {
 
   // Timer effect
   useEffect(() => {
-    if (isPuzzleSolved || isTimerPaused) {
+    if (completionSeconds || isTimerPaused) {
       return;
     }
     const interval = setInterval(() => {
@@ -527,30 +527,30 @@ export default function CrosswordScreen() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPuzzleSolved, isTimerPaused]);
+  }, [completionSeconds, isTimerPaused]);
 
   // Focus TextInput when component mounts or when game state changes, but not if puzzle is solved
   // in order to keep the keyboard appropriately up or down
   useEffect(() => {
-    if (gameState.currentWord && !loading && !error && !isPuzzleSolved && shouldRefocus) {
+    if (gameState.currentWord && !loading && !error && !completionSeconds && shouldRefocus) {
       setTimeout(() => {
         textInputRef.current?.focus();
       }, 100);
     }
-  }, [gameState.currentWord, loading, error, isPuzzleSolved, shouldRefocus]);
+  }, [gameState.currentWord, loading, error, completionSeconds, shouldRefocus]);
 
     // Handle focus: manage timer + load/refresh puzzle; also track AppState while focused
   useFocusEffect(
     useCallback(() => {
       // On focus, set timer paused based on current app state
-      if (!isPuzzleSolved) {
+      if (!completionSeconds) {
         const currentState = AppState.currentState as unknown as string | null;
         const isBackground = currentState === 'background' || currentState === 'inactive';
         setIsTimerPaused(!!isBackground);
       }
 
       // On first focus, do a foreground load to clear loading; afterwards, background refreshes
-      const isFirstLoad = !puzzleDateRef.current;
+      const isFirstLoad = !lastLoadedDate;
       if (isFirstLoad) {
         loadPuzzle({ background: false });
       } else {
@@ -559,7 +559,7 @@ export default function CrosswordScreen() {
 
       // While this screen is focused, respond to app state changes
       const handleAppStateChange = (nextAppState: string) => {
-        if (isPuzzleSolved) return;
+        if (completionSeconds) return;
         const isBackground = nextAppState === 'background' || nextAppState === 'inactive';
         setIsTimerPaused(isBackground);
       };
@@ -567,11 +567,11 @@ export default function CrosswordScreen() {
 
       return () => {
         subscription?.remove();
-        if (!isPuzzleSolved) {
+        if (!completionSeconds) {
           setIsTimerPaused(true);
         }
       };
-    }, [loadPuzzle, isPuzzleSolved])
+    }, [loadPuzzle, completionSeconds, lastLoadedDate])
   );
 
   if (loading) {
@@ -650,14 +650,14 @@ export default function CrosswordScreen() {
               returnKeyType="next"
               caretHidden={true}
               onBlur={() => {
-                if (!isPuzzleSolved && shouldRefocus) {
+                if (!completionSeconds && shouldRefocus) {
                   setTimeout(() => {
                     textInputRef.current?.focus();
                   }, 0);
                 }
               }}
             />
-            {isPuzzleSolved && (
+            {completionSeconds && (
               <ThemedView style={styles.completionBanner}>
                 <ThemedText style={styles.completionTitle}>Nice work!</ThemedText>
                 <ThemedText style={styles.completionSubtitle}>Finished in {formatTime(gameState.elapsedTime)}</ThemedText>
