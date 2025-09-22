@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { requireAuthUser } from '@/lib/auth/session';
+import { isUsernameAllowed } from '@/lib/usernameFilter';
 
 export async function GET(req: NextRequest) {
   try {
@@ -45,6 +46,9 @@ export async function PATCH(req: NextRequest) {
         }
         if (!/^[A-Za-z0-9]+$/.test(username)) {
           return NextResponse.json({ error: 'Username can only contain letters and numbers' }, { status: 400 });
+        }
+        if (!isUsernameAllowed(username)) {
+          return NextResponse.json({ error: 'Username contains disallowed content' }, { status: 400 });
         }
       }
     }
