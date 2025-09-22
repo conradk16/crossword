@@ -54,6 +54,7 @@ export default function CrosswordScreen() {
         require('../../assets/sounds/bell.mp3')
       );
       
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
       await sound.playAsync();
       
       // Unload the sound from memory after it finishes playing
