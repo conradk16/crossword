@@ -11,20 +11,15 @@ const FriendRequestCountContext = createContext<FriendRequestCountContextValue |
 
 export function FriendRequestCountProvider({ children }: { children: ReactNode }) {
   const { token: authToken } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
   const [count, setCount] = useState(0);
 
-  useEffect(() => {
-    setToken(authToken ?? null);
-  }, [authToken]);
-
   const syncFriendRequestCount = useCallback(async () => {
-    if (!token) {
+    if (!authToken) {
       setCount(0);
       return;
     }
     try {
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = { Authorization: `Bearer ${authToken}` };
       const requestsResponse = await fetch(withBaseUrl('/api/friends/requests'), { headers });
       if (requestsResponse.ok) {
         const incomingUsernames: string[] = await requestsResponse.json();
@@ -33,7 +28,7 @@ export function FriendRequestCountProvider({ children }: { children: ReactNode }
     } catch {
       // Keep previous count on error
     }
-  }, [token]);
+  }, [authToken]);
 
   useEffect(() => {
     setCount(0);

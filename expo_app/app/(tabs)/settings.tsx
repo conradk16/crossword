@@ -14,7 +14,6 @@ import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SettingsScreen() {
-  const [meError, setMeError] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ id: string; email: string; username: string } | null>(null);
 
   // Login/Register form state (single button; determine flow via API)
@@ -30,11 +29,13 @@ export default function SettingsScreen() {
   const [otpLastSentByEmail, setOtpLastSentByEmail] = useState<Record<string, number>>({});
   const [resendRemainingSeconds, setResendRemainingSeconds] = useState(60);
   
+  
   // Username editing state
   const [editingUsername, setEditingUsername] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [usernameLoading, setUsernameLoading] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   const { token, setAuthToken, clearAuthToken, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
@@ -53,7 +54,6 @@ export default function SettingsScreen() {
   const refreshUserProfile = useCallback(async () => {
     try { syncAuth().catch(() => {}); } catch {} // ignore failures
     try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
-    setMeError(null);
     try {
       const headers = getAuthHeaders(token);
       const r = await fetch(withBaseUrl('/api/profile'), { headers });
@@ -65,9 +65,7 @@ export default function SettingsScreen() {
       } else {
         throw new Error('Failed to load profile');
       }
-    } catch (e) {
-      setMeError('Failed to load profile');
-    }
+    } catch {}
   }, [token, syncAuth, syncFriendRequestCount]);
 
   useFocusEffect(
@@ -132,6 +130,8 @@ export default function SettingsScreen() {
         throw new Error(errorText);
       }
       setOtpLastSentByEmail((prev) => ({ ...prev, [normalized]: Date.now() }));
+      // Ensure button shows disabled state immediately when entering OTP step
+      setResendRemainingSeconds(60);
       setSubmitMessage(json?.message || 'Check your email for the one-time passcode');
       setStep('enterOtp');
     } catch (e) {
@@ -146,6 +146,7 @@ export default function SettingsScreen() {
     setSubmitMessage(null);
     try {
       setSubmitLoading(true);
+      const verificationStart = Date.now();
       const body = { email: email.trim(), otp: otp.trim() };
       const r = await fetch(withBaseUrl('/api/auth/otp/login'), {
         method: 'POST',
@@ -168,11 +169,17 @@ export default function SettingsScreen() {
       }
       const t = json?.token as string;
       if (t) await setAuthToken(t);
-      await refreshUserProfile();
-      setStep('enterEmail');
-      setEmail('');
-      setOtp('');
+      // Clear any prior OTP error state, and keep Verify loading until profile is fetched
       setOtpAttemptsRemaining(null);
+      try {
+        await refreshUserProfile();
+      } catch {}
+      // Ensure a minimum visible verifying duration to avoid brief blank state
+      const elapsed = Date.now() - verificationStart;
+      const minVerifyMs = 700;
+      if (elapsed < minVerifyMs) {
+        await new Promise((resolve) => setTimeout(resolve, minVerifyMs - elapsed));
+      }
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Authentication failed');
     } finally {
@@ -180,10 +187,12 @@ export default function SettingsScreen() {
     }
   }, [email, otp, refreshUserProfile, setAuthToken]);
 
+  
+
   const onLogout = useCallback(async () => {
     setSubmitError(null);
     try {
-      setSubmitLoading(true);
+      setLogoutLoading(true);
       const headers = getAuthHeaders(token);
       await fetch(withBaseUrl('/api/auth/logout'), { method: 'POST', headers });
     } catch {}
@@ -199,7 +208,7 @@ export default function SettingsScreen() {
       }
       await clearAuthToken();
       setProfile(null);
-      setSubmitLoading(false);
+      setLogoutLoading(false);
     }
   }, [profile?.email, token, clearAuthToken]);
 
@@ -360,14 +369,14 @@ export default function SettingsScreen() {
               </View>
             )}
             
-            <Pressable style={styles.buttonTertiary} onPress={onLogout} disabled={submitLoading}>
-              <ThemedText style={styles.buttonTertiaryText}>{submitLoading ? 'Logging out…' : 'Log out'}</ThemedText>
+            <Pressable style={styles.buttonTertiary} onPress={onLogout} disabled={logoutLoading}>
+              <ThemedText style={styles.buttonTertiaryText}>{logoutLoading ? 'Logging out…' : 'Log out'}</ThemedText>
             </Pressable>
           </ThemedView>
-        ) : (
+        ) : (token && !submitLoading) ? null : (
           <ThemedView style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Sign in or create an account</ThemedText>
-
+            
             {step === 'enterEmail' && (
               <View style={styles.stackGap}>
                 <View style={styles.inputGroup}>
@@ -392,7 +401,7 @@ export default function SettingsScreen() {
                 {submitMessage && <ThemedText style={styles.muted}>{submitMessage}</ThemedText>}
               </View>
             )}
-
+            
             {step === 'enterOtp' && (
               <View style={styles.stackGap}>
                 <ThemedText style={styles.muted}>Enter the 6-digit one-time passcode sent to {email}</ThemedText>
@@ -413,9 +422,9 @@ export default function SettingsScreen() {
                         ? 'You have used all one-time passcode attempts for today. Please try again tomorrow.'
                         : `Incorrect code. Please be careful — ${otpAttemptsRemaining} attempt${otpAttemptsRemaining === 1 ? '' : 's'} remaining today.`}
                     </ThemedText>
-                  ) : (
+                  ) : submitError ? (
                     <ThemedText style={styles.inputError}>{submitError}</ThemedText>
-                  )}
+                  ) : null}
                 </View>
                 <View style={styles.actionsRow}>
                   <Pressable
@@ -579,6 +588,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#FF3B30',
+  },
+  loadingText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 50,
   },
   inputGroup: {
     gap: 6,
