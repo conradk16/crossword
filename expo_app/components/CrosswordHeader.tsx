@@ -130,9 +130,9 @@ const styles = StyleSheet.create({
   },
   directionContainer: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 0,
+    borderRadius: 14,
   },
   directionText: {
     color: 'white',
