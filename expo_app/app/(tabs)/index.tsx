@@ -206,14 +206,11 @@ export default function CrosswordScreen() {
     if (!puzzleData || grid[row][col].isBlack) return;
 
     const isSameCell = row === gameState.selectedRow && col === gameState.selectedCol;
-    const isInCurrentWord = gameState.currentWord?.cells.some(cell => cell.row === row && cell.col === col);
 
     let desiredDirection = gameState.direction;
 
     if (isSameCell) {
       desiredDirection = gameState.direction === 'across' ? 'down' : 'across';
-    } else if (!isInCurrentWord) {
-      desiredDirection = 'across';
     }
 
     // Try to find a word in the desired direction first, then fall back to the other direction
