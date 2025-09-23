@@ -11,6 +11,7 @@ import { formatTime } from '@/utils/crosswordUtils';
 import { useAuth } from '@/services/AuthContext';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { getFriendlyError } from '@/utils/errorUtils';
+import { getCachedLeaderboard, clearCachedLeaderboard } from '@/services/leaderboardPrefetch';
 
 type LeaderboardEntry = {
   rank: number;
@@ -39,6 +40,23 @@ export default function LeaderboardScreen() {
       setCurrentUsername(null);
       return;
     }
+    // If we have a freshly cached prefetch, hydrate immediately for instant UI
+    try {
+      const cached = getCachedLeaderboard();
+      if (cached && cached.rows) {
+        setDate(cached.date || '');
+        setLeaderboard((cached.rows || []).map((r, idx) => ({
+          rank: idx + 1,
+          user: { id: r.username || `user-${idx + 1}`, username: r.username || '(unknown)' },
+          completionTime: r.timeMs != null ? Math.floor(r.timeMs / 1000) : null,
+        })));
+        if (typeof cached.username !== 'undefined') {
+          setCurrentUsername(cached.username ?? null);
+        }
+        // Clear cache after hydration to avoid stale reuse
+        clearCachedLeaderboard();
+      }
+    } catch {}
     try {
       const [leaderboardResponse, profileResponse] = await Promise.all([
         fetch(withBaseUrl('/api/puzzles/daily/leaderboard'), {

@@ -15,6 +15,7 @@ import { CrosswordGrid } from '@/components/CrosswordGrid';
 import { CrosswordHeader } from '@/components/CrosswordHeader';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
 import { getFriendlyError } from '@/utils/errorUtils';
+import { prefetchLeaderboard } from '@/services/leaderboardPrefetch';
 
 import { CrosswordData, CrosswordCell, Direction, GameState } from '@/types/crossword';
 import { convertGridToCells, findWordForPosition, isPuzzleComplete, findNextBlankSpotInDirectionAfter, findNextClueStartInDirectionAfter, findFirstEmptySpotInDirection, getNextCellInWord, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection, getNextPositionForOverwriteAdvance, getNextPositionForEmptyAdvance, getPrevPositionForBackspace } from '@/utils/crosswordUtils';
@@ -281,6 +282,8 @@ export default function CrosswordScreen() {
             timeMs: completionSeconds * 1000,
           }),
         });
+        // Prefetch leaderboard in the background so it is ready when user navigates
+        try { prefetchLeaderboard(t).catch(() => {}); } catch {}
       } catch (error) {
         console.log('Failed to sync completion time:', error);
       }
