@@ -63,7 +63,27 @@ class Generator:
     def __init__(self):
         self.words = defaultdict(list) # map from length to list of words
         self.trie = Trie()
+        self.exclusions: Set[str] = set()
+        self._load_exclusions()
         self._load_words()
+
+    def _load_exclusions(self) -> None:
+        base_dir = os.path.dirname(__file__)
+        exclusions_path = os.path.join(base_dir, 'lists', 'conrads_exclusions.txt')
+        if not os.path.exists(exclusions_path):
+            self.exclusions = set()
+            return
+        exclusions: Set[str] = set()
+        with open(exclusions_path) as f:
+            for raw_line in f:
+                word = raw_line.strip().lower()
+                if not word:
+                    continue
+                # Keep alphabetic words only, to match the main word list rule
+                if not word.isalpha():
+                    continue
+                exclusions.add(word)
+        self.exclusions = exclusions
 
     def _build_trie(self, max_length: int, min_length: int = 2) -> None:
         self.trie = Trie()
@@ -83,6 +103,9 @@ class Generator:
                     continue
                 # keep alphabetic words only
                 if not word.isalpha():
+                    continue
+                # exclude any words listed in conrads_exclusions.txt
+                if word in self.exclusions:
                     continue
                 self.words[len(word)].append(word)
 
@@ -377,11 +400,16 @@ def build_clues(rows: int, cols: int, black_squares: Set[Tuple[int, int]], final
     }
 
     instructions = (
-        "You are a crossword editor. Create one clever clue per entry for a crossword puzzle. "
-        "Follow American crossword conventions: question mark for double-meanings, fill-in-the-blanks, say/for example/for one/ e.g., abbreviated clues for abbreviated words, foreign language clue for foreign language word, no answer in the clue, etc. "
-        "Clues should vary in length between 1 and 10 words. "
-        "For each entry, first write out 10 clues, trying out many of the crossword conventions listed above. Then, choose the most clever option out of those 10 that would be understandable to a modern 12th grader and doesn't contain profanity. "
-        "Finally, consider if there are any slight tweaks or ways to improve that final clue (make it clearer or cleaner) before selecting it. "
+        "You are a crossword editor. Create one clue per entry for a crossword puzzle. "
+        "Follow American crossword conventions: question mark for double-meanings, fill-in-the-blanks, say/for example/for one/ e.g., abbreviated clues with \'.\' for abbreviated words, foreign language clue for foreign language word, quotations for expressions, no answer in clue, etc. "
+        "For each entry, do the following: "
+        "\n1. Write out 15 distinct clues, sometimes utilizing the crossword conventions listed above. "
+        "\n2. For each one, determine if it needs to be eliminated based on these criteria: "
+        "\n\ta. Does the clue really make sense when you think hard about it? "
+        "\n\tb. Are there words or references that too many people won't know? "
+        "\n\tc. Is the clue too difficult? "
+        "\n3. Choose one from the remaining options, usually choosing a normal good clue, but occasionally choosing a more clever one. "
+        "\n4. Determine if the clue works grammatically, i.e. does the clue tense or plurality match the answer? If not, adjust it before submitting. "
     )
 
     client = OpenAI()
