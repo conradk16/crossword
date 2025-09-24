@@ -106,7 +106,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ date: rows[0].date, words });
+	const across = words
+		.filter((w) => w.direction === 'across')
+		.map(({ word, x, y }) => ({ word, x, y }));
+
+	const down = words
+		.filter((w) => w.direction === 'down')
+		.map(({ word, x, y }) => ({ word, x, y }));
+
+	return NextResponse.json({ date: rows[0].date, words, across, down });
   } catch (err) {
     console.error('GET /api/admin/boards/get_word_locs_by_date error', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
