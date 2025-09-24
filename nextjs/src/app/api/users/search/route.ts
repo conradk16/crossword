@@ -28,9 +28,12 @@ export async function GET(req: NextRequest) {
            FROM friends f
            WHERE f.user_id = $2 AND f.friend_user_id = u.user_id
          )
-       ORDER BY u.username ASC
+       ORDER BY 
+         CASE WHEN lower(u.username) = lower($3) THEN 0 ELSE 1 END,
+         length(u.username) ASC,
+         u.username ASC
        LIMIT 3`,
-      [like, user.user_id]
+      [like, user.user_id, prefix]
     );
 
     // Return list of usernames only
