@@ -401,14 +401,15 @@ def build_clues(rows: int, cols: int, black_squares: Set[Tuple[int, int]], final
 
     instructions = (
         "You are a crossword editor. Create one clue per entry for a crossword puzzle. "
-        "Follow American crossword conventions: question mark for double-meanings, fill-in-the-blanks, say/for example/for one/ e.g., abbreviated clues with \'.\' for abbreviated words, foreign language clue for foreign language word, quotations for expressions, no answer in clue, etc. "
-        "For each entry, do the following: "
+        "\nFollow American crossword conventions: question mark for double-meanings, fill-in-the-blanks, say/for example/for one/ e.g., abbreviated clues with \'.\' for abbreviated words, foreign language clue for foreign language word, quotations for expressions, no answer in clue, etc. "
+        "\nFor each entry, do the following: "
         "\n1. Write out 15 distinct clues, sometimes utilizing the crossword conventions listed above. "
-        "\n2. For each one, determine if it needs to be eliminated based on these criteria: "
+        "\n2. Go through them one by one, and answer each of these questions to determine if it should be eliminated: (yes, this may take some time)"
         "\n\ta. Does the clue really make sense when you think hard about it? "
         "\n\tb. Are there words or references that too many people won't know? "
         "\n\tc. Is the clue too difficult? "
-        "\n3. Choose one from the remaining options, usually choosing a normal good clue, but occasionally choosing a more clever one. "
+        "\n\td. Does the clue contain part of the answer directly in it? (not allowed) "
+        "\n3. Choose one from the remaining options, usually choosing a normal good clue, but occasionally choosing a more clever one. Also, try to avoid doing too many one-word clues. "
         "\n4. Determine if the clue works grammatically, i.e. does the clue tense or plurality match the answer? If not, adjust it before submitting. "
     )
 
