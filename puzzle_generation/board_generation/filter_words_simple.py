@@ -86,11 +86,11 @@ def print_length_score_histograms(entries: List[Tuple[str, int]], dataset_label:
 
 def main() -> None:
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    xwordlist_path = os.path.join(base_dir, "lists/xwordlist.txt")
-    broda_diehl_path = os.path.join(base_dir, "lists/broda_diehl_list.txt")
-    xwordinfo_path = os.path.join(base_dir, "lists/xwi_list.txt")
+    xwordlist_path = os.path.join(base_dir, "online_lists/xwordlist.txt")
+    broda_diehl_path = os.path.join(base_dir, "online_lists/broda_diehl_list.txt")
+    xwordinfo_path = os.path.join(base_dir, "online_lists/xwi_list.txt")
     output_path = os.path.join(base_dir, "filtered_words_simple.txt")
-    conrads_exclusions_path = os.path.join(base_dir, "lists/conrads_exclusions.txt")
+    conrads_exclusions_path = os.path.join(base_dir, "conrads_exclusions.txt")
 
     xwordlist_entries = parse_xwordlist(xwordlist_path)
     broda_diehl_entries = parse_broda_diehl_list(broda_diehl_path)
