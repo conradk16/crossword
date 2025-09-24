@@ -1,2 +1,6 @@
 .env
 puzzles.jsonl
+__pycache__
+clue_generation/full_board_clues.jsonl
+clue_generation/partial_board_clues.jsonl
+board_generation/boards.jsonl

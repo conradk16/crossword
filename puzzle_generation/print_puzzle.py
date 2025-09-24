@@ -101,8 +101,8 @@ def print_clues(clues: List[Dict[str, Any]]) -> None:
 
     def render(group: List[Dict[str, Any]]) -> None:
         for c in group:
-            row = int(c.get("row", 0)) + 1
-            col = int(c.get("col", 0)) + 1
+            row = int(c.get("row", 0))
+            col = int(c.get("col", 0))
             length = c.get("length", "?")
             clue_text = c.get("clue", "")
             print(f"  ({row},{col}) len {length}: {clue_text}")
