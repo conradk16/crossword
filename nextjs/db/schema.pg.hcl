@@ -279,7 +279,7 @@ table "puzzles" {
     null = false
   }
 
-  // Puzzle payload (grid + clues) without duplicating the date inside JSON
+  // Puzzle payload (board + clues) without duplicating the date inside JSON
   column "data" {
     type = jsonb
     null = false
