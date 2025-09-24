@@ -676,13 +676,16 @@ export default function CrosswordScreen() {
         visible={showCompletionModal}
         transparent={true}
         animationType="fade"
+        statusBarTranslucent={true}
         onRequestClose={handleDismissModal}
       >
         <Pressable style={styles.modalOverlay} onPress={handleDismissModal}>
           <BlurView intensity={20} style={styles.blurOverlay}>
-            <View style={styles.modalContent}>
-              <ThemedText style={styles.modalTitle}>Solved!</ThemedText>
-              <ThemedText style={styles.modalTime}>{formatTime(gameState.elapsedTime)}</ThemedText>
+            <View style={styles.modalContentWrapper}>
+              <View style={styles.modalContent}>
+                <ThemedText style={styles.modalTitle}>Solved!</ThemedText>
+                <ThemedText style={styles.modalTime}>{formatTime(gameState.elapsedTime)}</ThemedText>
+              </View>
             </View>
           </BlurView>
         </Pressable>
@@ -771,17 +774,24 @@ const styles = StyleSheet.create({
     opacity: 0,
   },
   modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: '20%', // Position in top third of screen
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   blurOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  modalContentWrapper: {
     flex: 1,
-    width: '100%',
     justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: '20%', // Match the overlay positioning
+    paddingTop: '20%', // Position content in top third of screen
   },
   modalContent: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
