@@ -17,19 +17,22 @@ type DbPuzzleData = {
 
 export async function GET() {
   try {
-    const { rows } = await query<{ data: DbPuzzleData }>(
-      `SELECT data FROM puzzles WHERE puzzle_date = ${PACIFIC_TODAY_DATE_SQL} LIMIT 1`
+    const { rows } = await query<{ date: string; data: DbPuzzleData }>(
+      `SELECT puzzle_date::text AS date, data
+       FROM puzzles
+       WHERE puzzle_date = ${PACIFIC_TODAY_DATE_SQL}
+       LIMIT 1`
     );
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'No puzzle for today' }, { status: 404 });
     }
 
-    const data = rows[0].data;
+    const row = rows[0];
 
     return NextResponse.json({
-      date: new Date().toISOString().split('T')[0],
-      ...data,
+      date: row.date,
+      ...row.data,
     });
   } catch (err) {
     console.error('GET /api/puzzles/daily error', err);
