@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Colors } from '@/constants/Colors';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { Direction } from '@/types/crossword';
@@ -17,6 +18,7 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
   const [confirmingReveal, setConfirmingReveal] = useState(false);
   const [rightColumnWidth, setRightColumnWidth] = useState<number | null>(null);
   const [smallHeaderMode, setSmallHeaderMode] = useState(false);
+  const [isClueTwoLineMode, setIsClueTwoLineMode] = useState(false);
 
   useEffect(() => {
     if (!confirmingReveal) return;
@@ -89,7 +91,16 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
         </View>
       </View>
       <View style={styles.clueContainer}>
-        <ThemedText style={styles.clueText} numberOfLines={2}>
+        <ThemedText
+          style={[styles.clueText, isClueTwoLineMode && styles.clueTextTwoLine]}
+          numberOfLines={2}
+          onTextLayout={(e) => {
+            const twoLines = e.nativeEvent.lines.length > 1;
+            if (twoLines !== isClueTwoLineMode) {
+              setIsClueTwoLineMode(twoLines);
+            }
+          }}
+        >
           {currentClue || 'Select a square to see the clue'}
         </ThemedText>
       </View>
@@ -99,18 +110,16 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
 
 const styles = StyleSheet.create({
   container: {
-    padding: 8,
-    marginTop: HEADER_TOP_MARGIN,
-    marginBottom: HEADER_BOTTOM_MARGIN,
-    borderRadius: 8,
-    backgroundColor: '#f2f0f0',
-    minHeight: 80,
+    height: 85,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.light.surfaceHeader,
   },
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 0,
   },
   leftColumn: {
     flex: 1,
@@ -151,9 +160,15 @@ const styles = StyleSheet.create({
   },
   clueContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   clueText: {
     fontSize: 18,
+    lineHeight: 22,
     color: '#333',
+  },
+  clueTextTwoLine: {
+    fontSize: 16,
+    lineHeight: 18,
   },
 });

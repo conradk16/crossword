@@ -14,6 +14,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { CrosswordGrid } from '@/components/CrosswordGrid';
 import { CrosswordHeader } from '@/components/CrosswordHeader';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING, CONTENT_BOTTOM_PADDING } from '@/constants/Margins';
+import { Colors } from '@/constants/Colors';
 import { getFriendlyError } from '@/utils/errorUtils';
 import { prefetchLeaderboard } from '@/services/leaderboardPrefetch';
 
@@ -43,7 +44,7 @@ export default function CrosswordScreen() {
   const [isTimerPaused, setIsTimerPaused] = useState(false);
   const insets = useSafeAreaInsets();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const [stickyKeyboardHeight, setStickyKeyboardHeight] = useState(0);
+  const [stickyKeyboardHeight, setStickyKeyboardHeight] = useState(() => estimateInitialKeyboardReserve());
   const [, setCurrentLoadController] = useState<AbortController | null>(null);
   const [lastLoadedDate, setLastLoadedDate] = useState<string | null>(null);
   const { token, syncAuth } = useAuth();
@@ -563,6 +564,22 @@ export default function CrosswordScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ThemedView style={styles.keyboardContainer}>
           <ThemedText style={styles.loadingText}>Loading puzzle...</ThemedText>
+          {/* Mount a hidden input to trigger the keyboard immediately */}
+          <TextInput
+            ref={textInputRef}
+            style={styles.hiddenInput}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            keyboardType="default"
+            selectTextOnFocus={false}
+            autoFocus={true}
+            blurOnSubmit={false}
+            multiline={false}
+            returnKeyType="next"
+            caretHidden={true}
+            value={inputValue}
+            onChangeText={() => {}}
+          />
         </ThemedView>
       </SafeAreaView>
     );
@@ -600,18 +617,21 @@ export default function CrosswordScreen() {
               />
             </View>
             
-            <CrosswordGrid 
-              grid={grid} 
-              onCellPress={handleCellPress}
-              maxSize={computeMaxGridSize({
-                windowWidth,
-                windowHeight,
-                headerHeight,
-                safeTop: insets.top,
-                safeBottom: insets.bottom,
-                reservedKeyboardHeight: stickyKeyboardHeight,
-              })}
-            />
+            <View style={styles.gridBackground}> 
+              <CrosswordGrid 
+                grid={grid} 
+                onCellPress={handleCellPress}
+                maxSize={computeMaxGridSize({
+                  windowWidth,
+                  windowHeight,
+                  headerHeight,
+                  safeTop: insets.top,
+                  safeBottom: insets.bottom,
+                  reservedKeyboardHeight: stickyKeyboardHeight,
+                  contentBottomPadding: stickyKeyboardHeight > 0 ? 0 : CONTENT_BOTTOM_PADDING,
+                })}
+              />
+            </View>
             
             <TextInput
               ref={textInputRef}
@@ -678,11 +698,11 @@ function computeMaxGridSize(params: {
   safeTop: number;
   safeBottom: number;
   reservedKeyboardHeight: number;
+  contentBottomPadding: number;
 }): number {
-  const { windowWidth, windowHeight, headerHeight, safeTop, safeBottom, reservedKeyboardHeight } = params;
-  const horizontalPadding = SCROLL_CONTENT_HORIZONTAL_PADDING * 2; // scrollContent padding on both sides
-  const maxByWidth = windowWidth - horizontalPadding;
-  const contentBottomPadding = CONTENT_BOTTOM_PADDING;
+  const { windowWidth, windowHeight, headerHeight, safeTop, safeBottom, reservedKeyboardHeight, contentBottomPadding } = params;
+  // No horizontal padding: allow grid to use full width
+  const maxByWidth = windowWidth;
   const maxKeyboardReserve = Math.min(400, windowHeight * 0.5);
   const clampedKeyboardReserve = Math.max(0, Math.min(reservedKeyboardHeight, maxKeyboardReserve));
 
@@ -693,8 +713,20 @@ function computeMaxGridSize(params: {
     - clampedKeyboardReserve
     - contentBottomPadding;
 
-  const size = Math.min(maxByWidth, availableByHeight, 400);
+  const size = Math.min(maxByWidth, availableByHeight);
   return Math.max(0, size);
+}
+
+// Seed an initial keyboard reserve so the grid doesn't jump from 0 → real height
+function estimateInitialKeyboardReserve(): number {
+  const { height, width } = Dimensions.get('window');
+  const isTablet = Math.min(height, width) >= 768;
+  const maxReserve = Math.min(400, height * 0.5);
+  if (Platform.OS === 'ios') {
+    return Math.min(isTablet ? 380 : 260, maxReserve);
+  }
+  // Android keyboards tend to be a bit taller on average
+  return Math.min(isTablet ? 420 : 360, maxReserve);
 }
 
 const styles = StyleSheet.create({
@@ -709,10 +741,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: CONTENT_BOTTOM_PADDING,
+    paddingBottom: 0,
+  },
+  gridBackground: {
+    backgroundColor: Colors.light.surfaceHeader,
+    paddingHorizontal: 16,
+    alignItems: 'center',
   },
   pressableWrapper: {
-    paddingHorizontal: SCROLL_CONTENT_HORIZONTAL_PADDING,
+    paddingHorizontal: 0,
   },
   loadingText: {
     fontSize: 18,
@@ -776,10 +813,8 @@ const styles = StyleSheet.create({
     color: '#007AFF',
   },
   completionBanner: {
-    marginTop: CONTENT_BOTTOM_PADDING,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
     backgroundColor: '#d4e9ff',
     alignItems: 'center',
   },
