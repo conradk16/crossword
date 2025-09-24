@@ -49,6 +49,7 @@ export default function CrosswordScreen() {
   const [lastLoadedDate, setLastLoadedDate] = useState<string | null>(null);
   const { token, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
+  const [confirmingRevealPuzzle, setConfirmingRevealPuzzle] = useState(false);
   
 
   // Function to play bell sound when puzzle is completed
@@ -464,6 +465,42 @@ export default function CrosswordScreen() {
     }
   }, [puzzleData, gameState, grid, updateGridHighlighting, persistProgress]);
 
+  useEffect(() => {
+    if (!confirmingRevealPuzzle) return;
+    const timer = setTimeout(() => setConfirmingRevealPuzzle(false), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmingRevealPuzzle]);
+
+  const handleRevealPuzzle = useCallback(() => {
+    if (!puzzleData) return;
+
+    // Fill the entire grid with correct answers
+    const newGrid: CrosswordCell[][] = grid.map((row, r) =>
+      row.map((cell, c) => {
+        if (cell.isBlack) return cell;
+        const correctLetter = puzzleData.grid[r][c];
+        return {
+          ...cell,
+          userLetter: String(correctLetter || '').toUpperCase(),
+        };
+      })
+    );
+
+    // Mark as completed and show modal
+    const finalElapsed = gameState.elapsedTime;
+    setGrid(newGrid);
+    setCompletionSeconds(finalElapsed);
+    setShowCompletionModal(true);
+    playBellSound();
+    persistProgress(newGrid, { completionSeconds: finalElapsed });
+    // Dismiss keyboard so the button becomes visible space-wise
+    textInputRef.current?.blur();
+    Keyboard.dismiss();
+    if (gameState.currentWord) {
+      updateGridHighlighting(newGrid, gameState.selectedRow, gameState.selectedCol, gameState.currentWord);
+    }
+  }, [grid, puzzleData, gameState, playBellSound, persistProgress, updateGridHighlighting]);
+
   const handleDismissModal = useCallback(() => {
     setShowCompletionModal(false);
   }, []);
@@ -632,6 +669,25 @@ export default function CrosswordScreen() {
                 })}
               />
             </View>
+            {!completionSeconds && (
+              <View style={styles.revealContainer}>
+                <Pressable
+                  onPress={() => {
+                    if (!confirmingRevealPuzzle) {
+                      setConfirmingRevealPuzzle(true);
+                      return;
+                    }
+                    setConfirmingRevealPuzzle(false);
+                    handleRevealPuzzle();
+                  }}
+                  style={styles.revealButton}
+                >
+                  <ThemedText style={styles.revealButtonText}>
+                    {confirmingRevealPuzzle ? 'Are you sure?' : 'Reveal puzzle'}
+                  </ThemedText>
+                </Pressable>
+              </View>
+            )}
             
             <TextInput
               ref={textInputRef}
@@ -726,7 +782,7 @@ function estimateInitialKeyboardReserve(): number {
   const isTablet = Math.min(height, width) >= 768;
   const maxReserve = Math.min(400, height * 0.5);
   if (Platform.OS === 'ios') {
-    return Math.min(isTablet ? 380 : 270, maxReserve);
+    return Math.min(isTablet ? 380 : 260, maxReserve);
   }
   // Android keyboards tend to be a bit taller on average
   return Math.min(isTablet ? 420 : 360, maxReserve);
@@ -838,5 +894,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#007AFF',
+  },
+  revealContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: Colors.light.surfaceHeader,
+  },
+  revealButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    minWidth: 180,
+    alignItems: 'center',
+  },
+  revealButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
