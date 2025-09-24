@@ -11,6 +11,7 @@ import { withBaseUrl } from '@/constants/Api';
 import { SCROLL_CONTENT_HORIZONTAL_PADDING } from '@/constants/Margins';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { getFriendlyError } from '@/utils/errorUtils';
+import { syncCompletionThenPrefetchLeaderboard } from '@/services/leaderboardPrefetch';
 import { TextStyles } from '@/constants/TextStyles';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,11 +58,11 @@ export default function SettingsScreen() {
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const isEditingUsername = editingUsername || (!!profile && !profile?.username);
 
-  const refreshUserProfile = useCallback(async () => {
+  const refreshUserProfile = useCallback(async (tokenOverride?: string) => {
     try { syncAuth().catch(() => {}); } catch {} // ignore failures
     try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
     try {
-      const headers = getAuthHeaders(token);
+      const headers = getAuthHeaders(tokenOverride ?? token);
       const r = await fetch(withBaseUrl('/api/profile'), { headers });
       if (r.ok) {
         const data: { user_id: string; email: string; name: string | null; username: string | null } = await r.json();
@@ -149,11 +150,16 @@ export default function SettingsScreen() {
         return;
       }
       const t = json?.token as string;
-      if (t) await setAuthToken(t);
+      if (t) {
+        await setAuthToken(t);
+        // After successful login, submit pending completion and prefetch leaderboard
+        try { await syncCompletionThenPrefetchLeaderboard(t); } catch {}
+      }
       // Clear any prior OTP error state, and keep Verify loading until profile is fetched
       setOtpAttemptsRemaining(null);
       try {
-        await refreshUserProfile();
+        // Use the freshly received token to avoid races with context updates
+        await refreshUserProfile(t);
       } catch {}
       // Ensure a minimum visible verifying duration to avoid brief blank state
       const elapsed = Date.now() - verificationStart;

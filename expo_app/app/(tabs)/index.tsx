@@ -726,7 +726,7 @@ function estimateInitialKeyboardReserve(): number {
   const isTablet = Math.min(height, width) >= 768;
   const maxReserve = Math.min(400, height * 0.5);
   if (Platform.OS === 'ios') {
-    return Math.min(isTablet ? 380 : 260, maxReserve);
+    return Math.min(isTablet ? 380 : 270, maxReserve);
   }
   // Android keyboards tend to be a bit taller on average
   return Math.min(isTablet ? 420 : 360, maxReserve);
