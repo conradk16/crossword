@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     color: '#007AFF',
   },
   helpConfirmText: {
-    color: '#b762d1',
+    color: '#007AFF',
   },
   measureText: {
     position: 'absolute',
