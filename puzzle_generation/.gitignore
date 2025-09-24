@@ -3,4 +3,5 @@ puzzles.jsonl
 __pycache__
 clue_generation/full_board_clues.jsonl
 clue_generation/partial_board_clues.jsonl
+clue_generation/clues_to_overwrite.csv
 board_generation/boards.jsonl
