@@ -44,11 +44,11 @@ export function CrosswordGrid({ grid, onCellPress, maxSize }: CrosswordGridProps
     const isLeftEdge = col === 0;
     const isRightEdge = col === grid[0].length - 1;
     
-    // Position cells to perfectly align with the grid border
-    // Outer cells start at the grid border (gridBorderWidth offset from container)
-    // Inner cells account for accumulated cell sizes and inner borders
-    const leftPosition = gridBorderWidth + (col * cellSize) + (col * cellBorderWidth);
-    const topPosition = gridBorderWidth + (row * cellSize) + (row * cellBorderWidth);
+    // Position cells relative to the grid's inner content box (inside the border)
+    // No extra offset is needed for the grid border, as absolute positioning is
+    // relative to the inner edge of the border on React Native.
+    const leftPosition = (col * cellSize) + (col * cellBorderWidth);
+    const topPosition = (row * cellSize) + (row * cellBorderWidth);
     
     const cellBorders = {
       // Draw only top/left borders to avoid doubled thickness between cells

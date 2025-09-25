@@ -275,6 +275,8 @@ export default function SettingsScreen() {
       
       // Refresh profile data
       await refreshUserProfile();
+      // After setting username, submit pending completion and prefetch leaderboard
+      try { await syncCompletionThenPrefetchLeaderboard(token || ''); } catch {}
       setEditingUsername(false);
       setUsernameInput('');
     } catch (error) {

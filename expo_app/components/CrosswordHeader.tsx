@@ -18,13 +18,19 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
   const [confirmingReveal, setConfirmingReveal] = useState(false);
   const [rightColumnWidth, setRightColumnWidth] = useState<number | null>(null);
   const [smallHeaderMode, setSmallHeaderMode] = useState(false);
-  const [isClueTwoLineMode, setIsClueTwoLineMode] = useState(false);
+  const [clueMode, setClueMode] = useState<'default' | 'small' | 'twoLine'>('default');
+  const [clueContainerWidth, setClueContainerWidth] = useState<number | null>(null);
 
   useEffect(() => {
     if (!confirmingReveal) return;
     const timer = setTimeout(() => setConfirmingReveal(false), 3000);
     return () => clearTimeout(timer);
   }, [confirmingReveal]);
+
+  // Reset clue size mode when the clue text changes so we can re-measure
+  useEffect(() => {
+    setClueMode('default');
+  }, [currentClue]);
 
   const handleHelpPress = () => {
     if (!confirmingReveal) {
@@ -90,19 +96,39 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
           )}
         </View>
       </View>
-      <View style={styles.clueContainer}>
+      <View style={styles.clueContainer} onLayout={(e) => setClueContainerWidth(e.nativeEvent.layout.width)}>
         <ThemedText
-          style={[styles.clueText, isClueTwoLineMode && styles.clueTextTwoLine]}
-          numberOfLines={2}
-          onTextLayout={(e) => {
-            const twoLines = e.nativeEvent.lines.length > 1;
-            if (twoLines !== isClueTwoLineMode) {
-              setIsClueTwoLineMode(twoLines);
-            }
-          }}
+          style={[styles.clueText, (clueMode !== 'default') && styles.clueTextTwoLine]}
+          numberOfLines={clueMode === 'twoLine' ? 2 : 1}
         >
           {currentClue || 'Select a square to see the clue'}
         </ThemedText>
+        {clueContainerWidth != null && clueMode === 'default' && (
+          <ThemedText
+            style={[styles.measureText, { width: clueContainerWidth, fontSize: 18, lineHeight: 22 }]}
+            onTextLayout={(e) => {
+              const wraps = e.nativeEvent.lines.length > 1;
+              if (wraps) {
+                setClueMode('small');
+              }
+            }}
+          >
+            {currentClue || 'Select a square to see the clue'}
+          </ThemedText>
+        )}
+        {clueContainerWidth != null && clueMode === 'small' && (
+          <ThemedText
+            style={[styles.measureText, { width: clueContainerWidth, fontSize: 16, lineHeight: 18 }]}
+            onTextLayout={(e) => {
+              const wraps = e.nativeEvent.lines.length > 1;
+              if (wraps) {
+                setClueMode('twoLine');
+              }
+            }}
+          >
+            {currentClue || 'Select a square to see the clue'}
+          </ThemedText>
+        )}
       </View>
     </ThemedView>
   );

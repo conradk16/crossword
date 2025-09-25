@@ -59,8 +59,20 @@ export function clearCachedLeaderboard(): void {
 export async function syncCompletionThenPrefetchLeaderboard(token: string): Promise<void> {
   if (!token) return;
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const saved = await loadPuzzleState(today);
+    // Prefer the server's notion of "today" (Pacific) to match stored puzzle state
+    let serverDate: string | null = null;
+    try {
+      const r = await fetch(withBaseUrl('/api/puzzles/daily'));
+      if (r.ok) {
+        const json: { date?: string } = await r.json();
+        if (json && typeof json.date === 'string' && json.date.length >= 10) {
+          serverDate = json.date;
+        }
+      }
+    } catch {}
+
+    const dateKey = serverDate || new Date().toISOString().split('T')[0];
+    const saved = await loadPuzzleState(dateKey);
     const seconds = saved?.completionSeconds || 0;
     if (seconds > 0) {
       try {

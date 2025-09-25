@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
   },
   revealContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 24,
     alignItems: 'center',
     backgroundColor: Colors.light.surfaceHeader,
   },
