@@ -36,12 +36,12 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="friends"
-        options={{
+        options={() => ({
           title: 'Friends',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.fill" color={color} />,
           tabBarBadge: friendRequestCount > 0 ? friendRequestCount : undefined,
           tabBarBadgeStyle: { backgroundColor: 'red' },
-        }}
+        })}
       />
       <Tabs.Screen
         name="settings"

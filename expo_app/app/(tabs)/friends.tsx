@@ -287,7 +287,7 @@ export default function FriendsScreen() {
             keyboardDismissMode="on-drag"
             renderItem={({ item }) => (
               <ThemedView style={styles.row}>
-                <ThemedText style={styles.username}>{item.fromUser.username}</ThemedText>
+                <ThemedText style={styles.username} numberOfLines={1} ellipsizeMode="tail">{item.fromUser.username}</ThemedText>
                 <View style={styles.inlineButtons}>
                   <Pressable style={styles.buttonPrimary} onPress={() => handleActOnRequest(item.requestId, 'accept')}>
                     <ThemedText style={styles.buttonPrimaryText}>Accept</ThemedText>
@@ -337,7 +337,7 @@ export default function FriendsScreen() {
           ) : null)}
           renderItem={({ item }) => (
             <ThemedView style={styles.row}>
-              <ThemedText style={styles.username}>{item.username}</ThemedText>
+              <ThemedText style={styles.username} numberOfLines={1} ellipsizeMode="tail">{item.username}</ThemedText>
               <Pressable 
                 style={[
                   styles.buttonSecondary,
@@ -441,6 +441,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
   inlineButtons: {
     flexDirection: 'row',

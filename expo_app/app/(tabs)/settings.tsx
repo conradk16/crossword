@@ -60,7 +60,7 @@ export default function SettingsScreen() {
 
   const refreshUserProfile = useCallback(async (tokenOverride?: string) => {
     try { syncAuth().catch(() => {}); } catch {} // ignore failures
-    try { syncFriendRequestCount().catch(() => {}); } catch {} // ignore failures
+    try { syncFriendRequestCount(tokenOverride).catch(() => {}); } catch {} // ignore failures
     try {
       const headers = getAuthHeaders(tokenOverride ?? token);
       const r = await fetch(withBaseUrl('/api/profile'), { headers });
@@ -387,7 +387,7 @@ export default function SettingsScreen() {
             
             <View style={styles.row}> 
               <ThemedText style={styles.label}>Email</ThemedText>
-              <ThemedText style={styles.value}>{profile.email}</ThemedText>
+              <ThemedText style={styles.value} numberOfLines={1} ellipsizeMode="tail">{profile.email}</ThemedText>
             </View>
             
             {/* Username row */}
@@ -396,7 +396,7 @@ export default function SettingsScreen() {
                 <ThemedText style={styles.label}>Username</ThemedText>
                 <View style={styles.rowRight}>
                   {profile.username ? (
-                    <ThemedText style={styles.value}>{profile.username}</ThemedText>
+                    <ThemedText style={styles.value} numberOfLines={1} ellipsizeMode="tail">{profile.username}</ThemedText>
                   ) : (
                     <ThemedText style={[styles.value, styles.placeholder]}>Not set</ThemedText>
                   )}
@@ -601,6 +601,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    flexShrink: 1,
+    minWidth: 0,
+    marginLeft: 12,
   },
   modeSwitcher: {
     flexDirection: 'row',

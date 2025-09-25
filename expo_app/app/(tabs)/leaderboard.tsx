@@ -205,7 +205,7 @@ function LeaderboardRow({ item }: { item: LeaderboardEntry }) {
         <ThemedText style={[styles.rank, isCurrentUser && styles.currentUserText]}>{item.rank}</ThemedText>
       </View>
       <View style={styles.nameCol}>
-        <ThemedText style={[styles.username, isCurrentUser && styles.currentUserText]} numberOfLines={1}>
+        <ThemedText style={[styles.username, isCurrentUser && styles.currentUserText]} numberOfLines={1} ellipsizeMode="tail">
           {item.user.username}
         </ThemedText>
       </View>
@@ -282,6 +282,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    flexShrink: 1,
+    minWidth: 0,
   },
   time: {
     fontSize: 16,
