@@ -10,13 +10,13 @@
     "db:apply": "atlas schema apply -u \"postgres://local_pg_user:local_pg_password@localhost:5432/crossword_db?sslmode=disable\" -f file://db/schema.pg.hcl --auto-approve"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "@react-email/render": "^1.2.3",
     "date-fns": "^4.1.0",
     "next": "15.5.2",
     "pg": "^8.12.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "resend": "^6.1.0"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

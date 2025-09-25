@@ -20,11 +20,11 @@ DB_NAME=$(echo "${DB_SECRET_JSON}" | jq -r .database)
 # Construct and export the DATABASE_URL
 export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
 
-echo "Fetching Resend API key from AWS Secrets Manager..."
-RESEND_SECRET_NAME="resend_api_key"
-RESEND_SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "${RESEND_SECRET_NAME}" --region "${AWS_REGION}" --query SecretString --output text)
-RESEND_KEY_VALUE=$(echo "${RESEND_SECRET_JSON}" | jq -r .key)
-export RESEND_KEY="${RESEND_KEY_VALUE}"
+echo "Fetching Brevo API key from AWS Secrets Manager..."
+BREVO_SECRET_NAME="brevo_api_key"
+BREVO_SECRET_JSON=$(aws secretsmanager get-secret-value --secret-id "${BREVO_SECRET_NAME}" --region "${AWS_REGION}" --query SecretString --output text)
+BREVO_KEY_VALUE=$(echo "${BREVO_SECRET_JSON}" | jq -r .key)
+export BREVO_KEY="${BREVO_KEY_VALUE}"
 
 echo "Fetching Crossword Admin key from AWS Secrets Manager..."
 ADMIN_SECRET_NAME="crossword_admin_key"

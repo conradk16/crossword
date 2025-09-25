@@ -50,7 +50,7 @@ Behavior:
 - Generates a 6-digit numeric code (TTL 10 minutes), stores a SHA-256 hash of the code in `otp_codes`.
 - Sends the code via email (or logs to console if SMTP not configured).
 - Returns `{ "success": true }` on 200.
-- If no resend API key is provided, simply logs the email instead.
+- If no Brevo API key is provided, simply logs the email instead.
 
 Error status codes:
 - 400 invalid email
