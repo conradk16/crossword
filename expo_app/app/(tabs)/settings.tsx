@@ -526,19 +526,19 @@ export default function SettingsScreen() {
                     onPress={completeAuth}
                     disabled={submitLoading || !isValidOtp}
                   >
-                    <ThemedText style={[styles.buttonPrimaryText, !isValidOtp || submitLoading ? styles.buttonPrimaryTextDisabled : null]}>
+                    <ThemedText allowFontScaling={false} maxFontSizeMultiplier={1} style={[styles.buttonPrimaryText, !isValidOtp || submitLoading ? styles.buttonPrimaryTextDisabled : null]}>
                       {submitLoading ? 'Verifying…' : 'Verify & Continue'}
                     </ThemedText>
                   </Pressable>
                   {resendRemainingSeconds > 0 ? (
                     <Pressable style={[styles.buttonSecondary, styles.flex1]} disabled>
-                      <ThemedText style={styles.buttonSecondaryDisabledText}>
+                      <ThemedText allowFontScaling={false} maxFontSizeMultiplier={1} style={styles.buttonSecondaryDisabledText}>
                         {`Resend in ${Math.floor(resendRemainingSeconds / 60)}:${String(resendRemainingSeconds % 60).padStart(2, '0')}`}
                       </ThemedText>
                     </Pressable>
                   ) : (
                     <Pressable style={[styles.buttonSecondary, styles.buttonSecondaryEnabled, styles.flex1]} onPress={() => sendOtp(true)} disabled={submitLoading}>
-                      <ThemedText style={styles.buttonSecondaryEnabledText}>Resend OTP</ThemedText>
+                      <ThemedText allowFontScaling={false} maxFontSizeMultiplier={1} style={styles.buttonSecondaryEnabledText}>Resend OTP</ThemedText>
                     </Pressable>
                   )}
                 </View>
