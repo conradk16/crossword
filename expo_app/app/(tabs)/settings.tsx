@@ -15,6 +15,7 @@ import { syncCompletionThenPrefetchLeaderboard } from '@/services/leaderboardPre
 import { TextStyles } from '@/constants/TextStyles';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_MAX_LENGTH = 50;
 
 export default function SettingsScreen() {
   const [profile, setProfile] = useState<{ id: string; email: string; username: string } | null>(null);
@@ -47,11 +48,15 @@ export default function SettingsScreen() {
   const { token, setAuthToken, clearAuthToken, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
 
-  const isEmailInvalid = useMemo(() => {
+  const emailErrorMessage = useMemo(() => {
     const trimmed = email.trim();
-    if (trimmed.length === 0) return false;
-    return !EMAIL_REGEX.test(trimmed);
+    if (trimmed.length === 0) return null;
+    if (trimmed.length >= EMAIL_MAX_LENGTH) return 'Email must be under 50 characters.';
+    if (!EMAIL_REGEX.test(trimmed)) return 'Please enter a valid email address.';
+    return null;
   }, [email]);
+
+  const isEmailInvalid = useMemo(() => emailErrorMessage !== null, [emailErrorMessage]);
 
   const isValidOtp = useMemo(() => /^(\d){6}$/.test(otp.trim()), [otp]);
 
@@ -84,7 +89,7 @@ export default function SettingsScreen() {
     setOtpAttemptsRemaining(null);
     const trimmed = email.trim();
     const normalized = trimmed.toLowerCase();
-    if (trimmed.length === 0 || !EMAIL_REGEX.test(trimmed)) {
+    if (trimmed.length === 0 || trimmed.length >= EMAIL_MAX_LENGTH || !EMAIL_REGEX.test(trimmed)) {
       setEmailErrorVisible(true);
       return;
     }
@@ -386,14 +391,14 @@ export default function SettingsScreen() {
             <ThemedText style={styles.sectionTitle}>Account</ThemedText>
             
             <View style={styles.row}> 
-              <ThemedText style={styles.label}>Email</ThemedText>
+              <ThemedText style={styles.label} numberOfLines={1}>Email</ThemedText>
               <ThemedText style={styles.value} numberOfLines={1} ellipsizeMode="tail">{profile.email}</ThemedText>
             </View>
             
             {/* Username row */}
             {!isEditingUsername ? (
               <View style={styles.row}>
-                <ThemedText style={styles.label}>Username</ThemedText>
+                <ThemedText style={styles.label} numberOfLines={1}>Username</ThemedText>
                 <View style={styles.rowRight}>
                   {profile.username ? (
                     <ThemedText style={styles.value} numberOfLines={1} ellipsizeMode="tail">{profile.username}</ThemedText>
@@ -479,7 +484,7 @@ export default function SettingsScreen() {
                     maxFontSizeMultiplier={1}
                   />
                   {emailErrorVisible && isEmailInvalid && (
-                    <ThemedText style={styles.inputError}>Please enter a valid email address.</ThemedText>
+                    <ThemedText style={[styles.inputError, styles.usernameErrorText]}>{emailErrorMessage}</ThemedText>
                   )}
                 </View>
                 <Pressable style={styles.buttonPrimary} onPress={() => sendOtp()} disabled={submitLoading || email.trim().length === 0}>
@@ -595,12 +600,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    flex: 1,
+    flexShrink: 0,
   },
   value: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+    flex: 1,
     flexShrink: 1,
     minWidth: 0,
     marginLeft: 12,
@@ -653,7 +659,7 @@ const styles = StyleSheet.create({
   buttonPrimaryText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   buttonPrimaryTextDisabled: {
     color: '#999',
@@ -719,6 +725,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   rowRight: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

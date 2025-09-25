@@ -137,6 +137,10 @@ export default function CrosswordScreen() {
       const isNewOrChanged = lastLoadedDate !== data.date;
       setPuzzleData(data);
       if (isNewOrChanged) {
+        // New puzzle date detected: reset completion/modal state and ensure timer can run
+        setCompletionSeconds(null);
+        setShowCompletionModal(false);
+        setIsTimerPaused(false);
         const baseGrid = convertGridToCells(data);
 
         // Try to hydrate with saved state for this date
@@ -162,6 +166,9 @@ export default function CrosswordScreen() {
             restoredElapsedSeconds = saved.elapsedSeconds;
           }
         } catch {}
+
+        // Keep the ticking ref in sync with restored elapsed seconds
+        elapsedRef.current = restoredElapsedSeconds;
 
         setGrid(hydratedGrid);
 

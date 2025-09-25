@@ -26,40 +26,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  const handleSetAuthToken = useMemo(() => async (newToken: string) => {
+  const setAuthToken = useMemo(() => async (newToken: string) => {
     await saveStoredAuthToken(newToken);
     setToken(newToken);
   }, []);
 
-  const handleClearAuthToken = useMemo(() => async () => {
+  const clearAuthToken = useMemo(() => async () => {
     await clearStoredAuthToken();
     setToken(null);
   }, []);
 
-  const handleSyncAuth = useMemo(() => async () => {
+  const syncAuth = useMemo(() => async () => {
     try {
       if (!token) return;
       const response = await fetch(withBaseUrl('/api/profile'), {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 401) {
-        await handleClearAuthToken();
+        await clearAuthToken();
       }
-    } catch {
-      // ignore network errors; do not change auth state
-    }
-  }, [token, handleClearAuthToken]);
+    } catch {}
+  }, [token, clearAuthToken]);
 
   const value = useMemo<AuthContextValue>(() => ({
     token,
-    setAuthToken: handleSetAuthToken,
-    clearAuthToken: handleClearAuthToken,
-    syncAuth: handleSyncAuth,
-  }), [token, handleSetAuthToken, handleClearAuthToken, handleSyncAuth]);
-
-  if (!loaded) {
-    return null;
-  }
+    setAuthToken,
+    clearAuthToken,
+    syncAuth,
+  }), [token, setAuthToken, clearAuthToken, syncAuth]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -74,4 +68,4 @@ export function useAuth(): AuthContextValue {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return ctx;
-} 
+}
