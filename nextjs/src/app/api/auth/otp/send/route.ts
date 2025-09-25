@@ -14,6 +14,7 @@ interface OtpRowCount { count: string }
 interface OtpLatest { created_at: string }
 
 function validateEmail(email: string): boolean {
+  if (email.length > 50) return false;
   return /^(?:[a-zA-Z0-9_'^&+{}=#!?$%`~|-]+(?:\.[a-zA-Z0-9_'^&+{}=#!?$%`~|-]+)*|"(?:[^"]|\\")+")@(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/.test(email);
 }
 
