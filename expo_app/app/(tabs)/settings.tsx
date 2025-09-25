@@ -514,7 +514,7 @@ export default function SettingsScreen() {
                     <ThemedText style={styles.inputError}>
                       {otpAttemptsRemaining === 0
                         ? 'You have used all one-time passcode attempts for today. Please try again tomorrow.'
-                        : `Incorrect code. Please be careful — ${otpAttemptsRemaining} attempt${otpAttemptsRemaining === 1 ? '' : 's'} remaining today.`}
+                        : `Invalid code. Please be careful — ${otpAttemptsRemaining} attempt${otpAttemptsRemaining === 1 ? '' : 's'} remaining today.`}
                     </ThemedText>
                   ) : submitError ? (
                     <ThemedText style={isNetworkSubmitError ? [styles.inputError, styles.usernameErrorText] : styles.inputError}>{submitError}</ThemedText>
