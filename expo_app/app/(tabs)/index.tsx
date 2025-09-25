@@ -49,7 +49,8 @@ export default function CrosswordScreen() {
   const [lastLoadedDate, setLastLoadedDate] = useState<string | null>(null);
   const { token, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
-  const [confirmingRevealPuzzle, setConfirmingRevealPuzzle] = useState(false);
+  const [helpMenuOpen, setHelpMenuOpen] = useState(false);
+  const [helpMenuAnchor, setHelpMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   
 
   // Function to play bell sound when puzzle is completed
@@ -470,11 +471,7 @@ export default function CrosswordScreen() {
     }
   }, [puzzleData, gameState, grid, updateGridHighlighting, persistProgress]);
 
-  useEffect(() => {
-    if (!confirmingRevealPuzzle) return;
-    const timer = setTimeout(() => setConfirmingRevealPuzzle(false), 3000);
-    return () => clearTimeout(timer);
-  }, [confirmingRevealPuzzle]);
+  
 
   const handleRevealPuzzle = useCallback(() => {
     if (!puzzleData) return;
@@ -659,6 +656,13 @@ export default function CrosswordScreen() {
               currentClue={gameState.currentWord?.clue.clue || ''}
               direction={gameState.direction}
               onRevealSquare={handleRevealSquare}
+              onRevealPuzzle={handleRevealPuzzle}
+              isCompleted={!!completionSeconds}
+              isHelpMenuOpen={helpMenuOpen}
+              onOpenHelpMenu={(anchor) => {
+                setHelpMenuAnchor(anchor);
+                setHelpMenuOpen(true);
+              }}
               />
             </View>
             
@@ -677,25 +681,7 @@ export default function CrosswordScreen() {
                 })}
               />
             </View>
-            {!completionSeconds && (
-              <View style={styles.revealContainer}>
-                <Pressable
-                  onPress={() => {
-                    if (!confirmingRevealPuzzle) {
-                      setConfirmingRevealPuzzle(true);
-                      return;
-                    }
-                    setConfirmingRevealPuzzle(false);
-                    handleRevealPuzzle();
-                  }}
-                  style={styles.revealButton}
-                >
-                  <ThemedText style={styles.revealButtonText}>
-                    {confirmingRevealPuzzle ? 'Are you sure?' : 'Reveal puzzle'}
-                  </ThemedText>
-                </Pressable>
-              </View>
-            )}
+            
             
             <TextInput
               ref={textInputRef}
@@ -735,6 +721,52 @@ export default function CrosswordScreen() {
           </ThemedView>
           </Pressable>
         </ScrollView>
+        {helpMenuOpen && (
+          <View style={styles.menuRoot} pointerEvents="box-none">
+            <Pressable
+              style={styles.menuBackdrop}
+              onPress={() => {
+                setHelpMenuOpen(false);
+                setTimeout(() => textInputRef.current?.focus(), 0);
+              }}
+            />
+            <View
+              style={[
+                styles.menuContainer,
+                helpMenuAnchor ? {
+                  top: helpMenuAnchor.y - insets.top + helpMenuAnchor.height + 4,
+                  right: Math.max(12, Dimensions.get('window').width - (helpMenuAnchor.x + helpMenuAnchor.width)),
+                } : { top: 44, right: 12 },
+              ]}
+            >
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => {
+                  setHelpMenuOpen(false);
+                  setTimeout(() => textInputRef.current?.focus(), 0);
+                  handleRevealSquare();
+                }}
+              >
+                <ThemedText style={styles.menuItemText}>Reveal square</ThemedText>
+              </Pressable>
+              {!completionSeconds && (
+                <>
+                  <View style={styles.menuDivider} />
+                  <Pressable
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setHelpMenuOpen(false);
+                      setTimeout(() => textInputRef.current?.focus(), 0);
+                      handleRevealPuzzle();
+                    }}
+                  >
+                    <ThemedText style={styles.menuItemText}>Reveal puzzle</ThemedText>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          </View>
+        )}
       </View>
       
       {/* Completion Modal */}
@@ -902,23 +934,48 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#007AFF',
   },
-  revealContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    alignItems: 'center',
-    backgroundColor: Colors.light.surfaceHeader,
+  menuRoot: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
-  revealButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    minWidth: 180,
-    alignItems: 'center',
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'transparent',
   },
-  revealButtonText: {
-    color: 'white',
+  menuContainer: {
+    position: 'absolute',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 6,
+    width: 180,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e6e6e6',
+  },
+  menuItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  menuItemText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#007AFF',
   },
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E5E5EA',
+    marginVertical: 2,
+  },
+  
 });

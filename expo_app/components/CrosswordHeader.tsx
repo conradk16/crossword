@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
@@ -12,20 +12,18 @@ interface CrosswordHeaderProps {
   currentClue: string;
   direction: Direction;
   onRevealSquare?: () => void;
+  onRevealPuzzle?: () => void;
+  isCompleted?: boolean;
+  isHelpMenuOpen?: boolean;
+  onOpenHelpMenu?: (anchor: { x: number; y: number; width: number; height: number }) => void;
 }
 
-export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealSquare }: CrosswordHeaderProps) {
-  const [confirmingReveal, setConfirmingReveal] = useState(false);
+export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealSquare, onRevealPuzzle, isCompleted, isHelpMenuOpen, onOpenHelpMenu }: CrosswordHeaderProps) {
   const [rightColumnWidth, setRightColumnWidth] = useState<number | null>(null);
   const [smallHeaderMode, setSmallHeaderMode] = useState(false);
   const [clueMode, setClueMode] = useState<'default' | 'small' | 'twoLine'>('default');
   const [clueContainerWidth, setClueContainerWidth] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!confirmingReveal) return;
-    const timer = setTimeout(() => setConfirmingReveal(false), 3000);
-    return () => clearTimeout(timer);
-  }, [confirmingReveal]);
+  const helpAnchorRef = useRef<View | null>(null);
 
   // Reset clue size mode when the clue text changes so we can re-measure
   useEffect(() => {
@@ -33,15 +31,22 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
   }, [currentClue]);
 
   const handleHelpPress = () => {
-    if (!confirmingReveal) {
-      setConfirmingReveal(true);
-      return;
+    try {
+      helpAnchorRef.current?.measureInWindow?.((x, y, width, height) => {
+        onOpenHelpMenu?.({ x, y, width, height });
+      });
+    } catch {
+      const windowWidth = Dimensions.get('window').width;
+      onOpenHelpMenu?.({ x: windowWidth - 100, y: 44, width: 88, height: 28 });
     }
-    // Second tap confirms reveal
-    setConfirmingReveal(false);
-    if (onRevealSquare) {
-      onRevealSquare();
-    }
+  };
+
+  const handleSelectRevealSquare = () => {
+    if (onRevealSquare) onRevealSquare();
+  };
+
+  const handleSelectRevealPuzzle = () => {
+    if (onRevealPuzzle) onRevealPuzzle();
   };
 
   return (
@@ -69,17 +74,18 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
           style={styles.rightColumn}
           onLayout={(e) => setRightColumnWidth(e.nativeEvent.layout.width)}
         >
-          <TouchableOpacity onPress={handleHelpPress} activeOpacity={0.7}>
-            <ThemedText
-              style={[
-                styles.helpText,
-                { fontSize: smallHeaderMode ? 15 : 16 },
-                confirmingReveal && styles.helpConfirmText,
-              ]}
-            >
-              {confirmingReveal ? 'Reveal square?' : 'Help'}
-            </ThemedText>
-          </TouchableOpacity>
+          <View ref={helpAnchorRef}>
+            <TouchableOpacity onPress={handleHelpPress} activeOpacity={0.7}>
+              <ThemedText
+                style={[
+                  styles.helpText,
+                  { fontSize: smallHeaderMode ? 15 : 16 },
+                ]}
+              >
+                {'Help'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
           {rightColumnWidth != null && (
             <ThemedText
               style={[
@@ -91,7 +97,7 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
                 setSmallHeaderMode(wraps);
               }}
             >
-              {"Reveal square?"}
+              {"Reveal puzzle"}
             </ThemedText>
           )}
         </View>
@@ -130,6 +136,8 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
           </ThemedText>
         )}
       </View>
+
+      {/* Menu is rendered by parent overlay to avoid dismissing keyboard */}
     </ThemedView>
   );
 }
@@ -195,5 +203,50 @@ const styles = StyleSheet.create({
   clueTextTwoLine: {
     fontSize: 16,
     lineHeight: 18,
+  },
+  menuRoot: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+  },
+  menuContainer: {
+    position: 'absolute',
+    top: 44,
+    right: 12,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 6,
+    width: 180,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e6e6e6',
+  },
+  menuItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  menuDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E5E5EA',
+    marginVertical: 2,
   },
 });
