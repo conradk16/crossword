@@ -3,7 +3,7 @@ import { StyleSheet, ScrollView, Platform, TextInput, Dimensions, View, Pressabl
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
-import { Audio } from 'expo-av';
+import { Audio, InterruptionModeAndroid } from 'expo-av';
 import { loadPuzzleState, savePuzzleState, saveElapsedSeconds } from '@/services/storage';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { useAuth } from '@/services/AuthContext';
@@ -59,7 +59,12 @@ export default function CrosswordScreen() {
         require('../../assets/sounds/bell.mp3')
       );
       
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
       await sound.playAsync();
       
       // Unload the sound from memory after it finishes playing
@@ -514,15 +519,16 @@ export default function CrosswordScreen() {
       }
     };
 
-    const subWillChange = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow',
-      handleKeyboardEvent
-    );
-    const subDidShow = Keyboard.addListener('keyboardDidShow', handleKeyboardEvent);
+    const primaryEvent = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidShow';
+    const subPrimary = Keyboard.addListener(primaryEvent as any, handleKeyboardEvent);
+    // On iOS, also listen to didShow as a fallback to catch cases where frame change may not fire
+    const subSecondary = Platform.OS === 'ios'
+      ? Keyboard.addListener('keyboardDidShow', handleKeyboardEvent)
+      : null;
 
     return () => {
-      subWillChange.remove();
-      subDidShow.remove();
+      subPrimary.remove();
+      subSecondary?.remove();
     };
   }, []);
 
@@ -616,6 +622,8 @@ export default function CrosswordScreen() {
             caretHidden={true}
             value={inputValue}
             onChangeText={() => {}}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1}
           />
         </ThemedView>
       </SafeAreaView>
@@ -715,6 +723,8 @@ export default function CrosswordScreen() {
                   }, 0);
                 }
               }}
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1}
             />
             {completionSeconds && (
               <ThemedView style={styles.completionBanner}>
@@ -778,14 +788,11 @@ function computeMaxGridSize(params: {
 
 // Seed an initial keyboard reserve so the grid doesn't jump from 0 → real height
 function estimateInitialKeyboardReserve(): number {
-  const { height, width } = Dimensions.get('window');
-  const isTablet = Math.min(height, width) >= 768;
-  const maxReserve = Math.min(400, height * 0.5);
   if (Platform.OS === 'ios') {
-    return Math.min(isTablet ? 380 : 260, maxReserve);
+    return 260;
   }
   // Android keyboards tend to be a bit taller on average
-  return Math.min(isTablet ? 420 : 360, maxReserve);
+  return 320;
 }
 
 const styles = StyleSheet.create({

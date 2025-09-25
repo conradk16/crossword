@@ -423,6 +423,8 @@ export default function SettingsScreen() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     onTouchStart={(e) => { e.stopPropagation(); }}
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                   />
                   <View style={styles.editActions}>
                     <Pressable 
@@ -471,6 +473,8 @@ export default function SettingsScreen() {
                     autoCorrect={false}
                     keyboardType="email-address"
                     onTouchStart={(e) => { e.stopPropagation(); }}
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                   />
                   {emailErrorVisible && isEmailInvalid && (
                     <ThemedText style={styles.inputError}>Please enter a valid email address.</ThemedText>
@@ -501,6 +505,8 @@ export default function SettingsScreen() {
                     autoCorrect={false}
                     keyboardType="number-pad"
                     onTouchStart={(e) => { e.stopPropagation(); }}
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                   />
                   {otpAttemptsRemaining !== null ? (
                     <ThemedText style={styles.inputError}>

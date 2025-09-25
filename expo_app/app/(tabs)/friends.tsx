@@ -321,6 +321,8 @@ export default function FriendsScreen() {
               // prevent parent pressable from dismissing keyboard when interacting with the input
               e.stopPropagation();
             }}
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1}
           />
           {searchLoading && <ActivityIndicator size="small" color="#8E8E93" />}
         </View>

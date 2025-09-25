@@ -1,13 +1,20 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
+import { Text as RNText, TextInput as RNTextInput } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider } from '@/services/AuthContext';
 import { FriendRequestCountProvider } from '@/services/FriendRequestCountContext';
+
+// Disable dynamic text scaling globally
+(RNText as any).defaultProps = (RNText as any).defaultProps || {};
+(RNText as any).defaultProps.allowFontScaling = false;
+(RNTextInput as any).defaultProps = (RNTextInput as any).defaultProps || {};
+(RNTextInput as any).defaultProps.allowFontScaling = false;
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -24,12 +31,12 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <FriendRequestCountProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ThemeProvider value={DefaultTheme}>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
             </Stack>
-            <StatusBar style="auto" />
+            <StatusBar style="dark" />
           </ThemeProvider>
         </FriendRequestCountProvider>
       </AuthProvider>
