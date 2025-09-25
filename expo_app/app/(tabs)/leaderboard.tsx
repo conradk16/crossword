@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -29,6 +29,7 @@ export default function LeaderboardScreen() {
   const [error, setError] = useState<string | null>(null);
   const { token, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
+  const abortRef = useRef<AbortController | null>(null);
 
   const loadLeaderboard = useCallback(async () => {
     try { syncAuth().catch(() => {}); } catch {} // ignore failures
@@ -58,12 +59,19 @@ export default function LeaderboardScreen() {
       }
     } catch {}
     try {
+      // Abort any in-flight request and start a new one
+      const controller = new AbortController();
+      abortRef.current?.abort();
+      abortRef.current = controller;
+
       const [leaderboardResponse, profileResponse] = await Promise.all([
         fetch(withBaseUrl('/api/puzzles/daily/leaderboard'), {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         }),
         fetch(withBaseUrl('/api/profile'), {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         }),
       ]);
 
@@ -73,8 +81,7 @@ export default function LeaderboardScreen() {
       }
 
       if (!leaderboardResponse.ok) {
-        setLeaderboard([]);
-        setDate('');
+        // Keep previous data on transient failures to avoid blank screen
         return;
       }
       const rows: Array<{ username: string | null; timeMs: number | null }> = await leaderboardResponse.json();
@@ -86,10 +93,12 @@ export default function LeaderboardScreen() {
         completionTime: r.timeMs != null ? Math.floor(r.timeMs / 1000) : null,
       })));
     } catch (err) {
+      // Ignore aborts from rapid tab switches
+      if ((err as any)?.name === 'AbortError') {
+        return;
+      }
       const friendly = getFriendlyError(err, 'Failed to load leaderboard');
       setError(friendly.message);
-      setLeaderboard([]);
-      setDate('');
     }
   }, [token, syncAuth, syncFriendRequestCount]);
 
@@ -114,7 +123,10 @@ export default function LeaderboardScreen() {
         }
       };
       run();
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+        try { abortRef.current?.abort(); } catch {}
+      };
     }, [loadLeaderboard, hasLoadedOnce])
   );
 

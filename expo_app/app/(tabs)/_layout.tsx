@@ -13,8 +13,13 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      // Keep all tab scenes attached to improve instantaneous switching
+      detachInactiveScreens={false}
       screenOptions={{
-        lazy: true,
+        // Pre-mount all tabs to avoid brief content remnants when switching
+        lazy: false,
+        // Prevent screens from updating while blurred to reduce flicker
+        freezeOnBlur: true,
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarBackground: TabBarBackground,
