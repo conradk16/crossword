@@ -7,8 +7,11 @@ export interface SendOtpEmailParams {
 }
 
 // Initialize Brevo client if API key is provided
-let emailAPI = new TransactionalEmailsApi();
-(emailAPI as any).authentications.apiKey.apiKey = process.env.BREVO_API_KEY;
+const emailAPI = new TransactionalEmailsApi();
+if (process.env.BREVO_API_KEY) {
+  (emailAPI as unknown as { authentications: { apiKey: { apiKey: string } } })
+    .authentications.apiKey.apiKey = process.env.BREVO_API_KEY;
+}
 
 export async function sendOtpEmail(params: SendOtpEmailParams) {
   const { to, code, expiresAt } = params;
@@ -20,7 +23,7 @@ export async function sendOtpEmail(params: SendOtpEmailParams) {
     console.log('[DEV EMAIL]', { to, subject, text });
     return;
   }
-  let message = new SendSmtpEmail();
+  const message = new SendSmtpEmail();
   message.subject = subject
   message.textContent = text
   message.sender = { name: "Conrad's Crossword", email: "no-reply@conradscrossword.com" };
@@ -30,8 +33,9 @@ export async function sendOtpEmail(params: SendOtpEmailParams) {
   // Send email via Brevo
   try {
     const res = await emailAPI.sendTransacEmail(message);
-    console.log(JSON.stringify((res as any).body));
-  } catch (err: any) {
-    throw new Error(`Failed to send email via Brevo: ${err?.message || String(err)}`);
+    console.log('Brevo sendTransacEmail response:', res);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to send email via Brevo: ${errorMessage}`);
   }
 }
