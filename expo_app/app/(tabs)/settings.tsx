@@ -650,6 +650,7 @@ const styles = StyleSheet.create({
   buttonPrimaryText: {
     color: '#fff',
     fontWeight: '700',
+    fontSize: 14,
   },
   buttonPrimaryTextDisabled: {
     color: '#999',
@@ -805,9 +806,11 @@ const styles = StyleSheet.create({
   buttonSecondaryDisabledText: {
     color: '#999',
     fontWeight: '700',
+    fontSize: 14,
   },
   buttonSecondaryEnabledText: {
     color: '#fff',
     fontWeight: '700',
+    fontSize: 14,
   },
 });
