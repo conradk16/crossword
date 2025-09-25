@@ -128,7 +128,11 @@ class InputRow:
 def parse_input_file(path: str) -> Dict[str, List[InputRow]]:
     by_date: Dict[str, List[InputRow]] = {}
     with open(path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f, skipinitialspace=True)
+        reader = csv.DictReader(
+            f,
+            skipinitialspace=True,
+            escapechar="\\",
+        )
         expected = ["date", "row", "col", "direction", "optional_clue"]
         for req in expected:
             if req not in (reader.fieldnames or []):
