@@ -25,6 +25,12 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional
 
+# Use macOS system trust store so Python requests trusts the same CAs as curl
+try:
+    import truststore  # type: ignore
+    truststore.inject_into_ssl()
+except Exception:
+    pass
 
 DATE_REGEX = re.compile(r"^\d{2}-\d{2}-\d{4}$")
 
