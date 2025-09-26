@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest) {
           return NextResponse.json({ error: 'Username cannot be empty' }, { status: 400 });
         }
         if (username.length > 15) {
-          return NextResponse.json({ error: 'Username must be at most 20 characters' }, { status: 400 });
+          return NextResponse.json({ error: 'Username must be at most 15 characters' }, { status: 400 });
         }
         if (!/^[A-Za-z0-9]+$/.test(username)) {
           return NextResponse.json({ error: 'Username can only contain letters and numbers' }, { status: 400 });

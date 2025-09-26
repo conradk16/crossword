@@ -41,6 +41,7 @@ RUN npm install --production
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/src/lib/usernameDisallowList.txt ./src/lib/usernameDisallowList.txt
 
 EXPOSE 3000
 
