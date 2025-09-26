@@ -611,24 +611,6 @@ export default function CrosswordScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ThemedView style={styles.keyboardContainer}>
           <ThemedText style={styles.loadingText}>Loading puzzle...</ThemedText>
-          {/* Mount a hidden input to trigger the keyboard immediately */}
-          <TextInput
-            ref={textInputRef}
-            style={styles.hiddenInput}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            keyboardType="default"
-            selectTextOnFocus={false}
-            autoFocus={true}
-            blurOnSubmit={false}
-            multiline={false}
-            returnKeyType="next"
-            caretHidden={true}
-            value={inputValue}
-            onChangeText={() => {}}
-            allowFontScaling={false}
-            maxFontSizeMultiplier={1}
-          />
         </ThemedView>
       </SafeAreaView>
     );
