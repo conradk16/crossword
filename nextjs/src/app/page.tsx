@@ -7,11 +7,18 @@ export default function Home() {
         <p className="text-base text-black/80 dark:text-white/80">
           This site is simply meant as an API server for the Conrad's Crossword app.
         </p>
-        <p>
-          <a href="/privacy" className="underline hover:no-underline">
-            Read our privacy policy
-          </a>
-        </p>
+        <div className="space-y-2">
+          <p>
+            <a href="/privacy" className="underline hover:no-underline">
+              Read our privacy policy
+            </a>
+          </p>
+          <p>
+            <a href="/support" className="underline hover:no-underline">
+              Need support?
+            </a>
+          </p>
+        </div>
       </div>
     </main>
   );
