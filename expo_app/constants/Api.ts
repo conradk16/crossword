@@ -16,11 +16,10 @@ export function getApiBaseUrl(): string {
   switch (env) {
     case 'dev':
       return 'https://conradscrossword.dev';
-    case 'prod':
-      return 'https://conradscrossword.com';
     case 'local':
-    default:
       return 'http://localhost:3000';
+    default:
+      return 'https://conradscrossword.com';
   }
 }
 

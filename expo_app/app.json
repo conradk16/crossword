@@ -24,7 +24,8 @@
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.conradscrossword"
     },
     "plugins": [
       "expo-router",

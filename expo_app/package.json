@@ -3,10 +3,8 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
-    "start:local": "EXPO_PUBLIC_API_ENV=local expo start",
+    "start": "EXPO_PUBLIC_API_ENV=local expo start",
     "start:dev": "EXPO_PUBLIC_API_ENV=dev expo start",
-    "start:prod": "EXPO_PUBLIC_API_ENV=prod expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
