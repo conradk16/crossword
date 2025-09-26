@@ -610,6 +610,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
     marginLeft: 12,
+    textAlign: 'right',
   },
   modeSwitcher: {
     flexDirection: 'row',
@@ -733,6 +734,7 @@ const styles = StyleSheet.create({
   placeholder: {
     color: '#999',
     fontStyle: 'italic',
+    textAlign: 'right',
   },
   editLink: {
     color: '#007AFF',
