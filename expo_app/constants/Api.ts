@@ -1,7 +1,7 @@
 export type ApiEnvironment = 'local' | 'dev' | 'prod';
 
 function getEnv(): ApiEnvironment {
-  const env = (process.env.EXPO_PUBLIC_API_ENV || 'local').toLowerCase();
+  const env = (process.env.EXPO_PUBLIC_API_ENV || 'prod').toLowerCase(); // if not defined, use prod (no need to set env variable in prod)
   if (env === 'dev' || env === 'prod') return env as ApiEnvironment;
   return 'local';
 }
