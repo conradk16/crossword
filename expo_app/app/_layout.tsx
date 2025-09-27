@@ -5,10 +5,12 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 import { Text as RNText, TextInput as RNTextInput } from 'react-native';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider } from '@/services/AuthContext';
 import { FriendRequestCountProvider } from '@/services/FriendRequestCountContext';
+import * as SplashScreen from 'expo-splash-screen';
+
+// prevent splash screen from autohiding (hide in index.tsx)
+SplashScreen.preventAutoHideAsync();
 
 // Disable dynamic text scaling globally
 (RNText as any).defaultProps = (RNText as any).defaultProps || {};
@@ -17,7 +19,6 @@ import { FriendRequestCountProvider } from '@/services/FriendRequestCountContext
 (RNTextInput as any).defaultProps.allowFontScaling = false;
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });

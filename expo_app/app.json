@@ -8,11 +8,6 @@
     "scheme": "crosswordexpoapp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.conradscrossword",
@@ -33,8 +28,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "resizeMode": "cover",
           "backgroundColor": "#ffffff"
         }
       ]

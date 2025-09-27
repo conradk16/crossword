@@ -8,7 +8,7 @@ import { loadPuzzleState, savePuzzleState, saveElapsedSeconds } from '@/services
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { useAuth } from '@/services/AuthContext';
 import { withBaseUrl } from '@/constants/Api';
-
+import * as SplashScreen from 'expo-splash-screen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { CrosswordGrid } from '@/components/CrosswordGrid';
@@ -213,6 +213,12 @@ export default function CrosswordScreen() {
     } finally {
       if (!background) {
         setLoading(false);
+        // hide the splash screen
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.log('Error hiding splash screen:', e);
+        }
       }
     }
   }, [updateGridHighlighting, syncAuth, syncFriendRequestCount, lastLoadedDate]);

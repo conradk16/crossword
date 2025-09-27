@@ -9,27 +9,27 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		8133201D43B3B92F5B733577 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4AC94675DB6DC43AEDFC7607 /* PrivacyInfo.xcprivacy */; };
-		995DFDE96B8FDC538B3CF9F0 /* libPods-Crossword.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C5BCF21EBEA3DD9F25A63848 /* libPods-Crossword.a */; };
+		88D3BB23D84897829FB18D59 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F11DDD1BACD9D573B33D03 /* ExpoModulesProvider.swift */; };
+		997D2D9ABEA05FAFF7CAF0E9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = E26E11D89D043FC4CF543252 /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		EF20CD1E1DBFD5541FFB85AC /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B16AED68ED891064F4C416 /* ExpoModulesProvider.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		F683998FB005C2C017EE2886 /* libPods-Crossword.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9A44EE0EA35DBF13A96DD9AC /* libPods-Crossword.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		017E5FB4513AE80578025362 /* Pods-Crossword.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Crossword.debug.xcconfig"; path = "Target Support Files/Pods-Crossword/Pods-Crossword.debug.xcconfig"; sourceTree = "<group>"; };
-		04B16AED68ED891064F4C416 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Crossword/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* Crossword.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Crossword.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Crossword/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Crossword/Info.plist; sourceTree = "<group>"; };
-		4AC94675DB6DC43AEDFC7607 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Crossword/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		82E272251347EA5CC189F6AE /* Pods-Crossword.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Crossword.release.xcconfig"; path = "Target Support Files/Pods-Crossword/Pods-Crossword.release.xcconfig"; sourceTree = "<group>"; };
+		9A44EE0EA35DBF13A96DD9AC /* libPods-Crossword.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Crossword.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Crossword/SplashScreen.storyboard; sourceTree = "<group>"; };
+		B8AC883F30B0E89F419EF435 /* Pods-Crossword.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Crossword.debug.xcconfig"; path = "Target Support Files/Pods-Crossword/Pods-Crossword.debug.xcconfig"; sourceTree = "<group>"; };
+		B8F11DDD1BACD9D573B33D03 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Crossword/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C5BCF21EBEA3DD9F25A63848 /* libPods-Crossword.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Crossword.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E26E11D89D043FC4CF543252 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Crossword/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Crossword/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Crossword-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Crossword-Bridging-Header.h"; path = "Crossword/Crossword-Bridging-Header.h"; sourceTree = "<group>"; };
-		F5F887A5D1E6DF37D0505786 /* Pods-Crossword.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Crossword.release.xcconfig"; path = "Target Support Files/Pods-Crossword/Pods-Crossword.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				995DFDE96B8FDC538B3CF9F0 /* libPods-Crossword.a in Frameworks */,
+				F683998FB005C2C017EE2886 /* libPods-Crossword.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,35 +53,36 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				4AC94675DB6DC43AEDFC7607 /* PrivacyInfo.xcprivacy */,
+				E26E11D89D043FC4CF543252 /* PrivacyInfo.xcprivacy */,
 			);
 			name = Crossword;
-			sourceTree = "<group>";
-		};
-		27B732B7DF9BD6021BDEE235 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				A4651CB370F62943D52DF133 /* Crossword */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
-		28BC85A0188DB195237B3DB8 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				017E5FB4513AE80578025362 /* Pods-Crossword.debug.xcconfig */,
-				F5F887A5D1E6DF37D0505786 /* Pods-Crossword.release.xcconfig */,
-			);
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				C5BCF21EBEA3DD9F25A63848 /* libPods-Crossword.a */,
+				9A44EE0EA35DBF13A96DD9AC /* libPods-Crossword.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		46CE749C596DBC6F71CF8377 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				BE4208CCF11AC9661CCA79A7 /* Crossword */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		6009ACE011824BB6CF8894C4 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				B8AC883F30B0E89F419EF435 /* Pods-Crossword.debug.xcconfig */,
+				82E272251347EA5CC189F6AE /* Pods-Crossword.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -98,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				28BC85A0188DB195237B3DB8 /* Pods */,
-				27B732B7DF9BD6021BDEE235 /* ExpoModulesProviders */,
+				6009ACE011824BB6CF8894C4 /* Pods */,
+				46CE749C596DBC6F71CF8377 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -114,14 +115,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A4651CB370F62943D52DF133 /* Crossword */ = {
-			isa = PBXGroup;
-			children = (
-				04B16AED68ED891064F4C416 /* ExpoModulesProvider.swift */,
-			);
-			name = Crossword;
-			sourceTree = "<group>";
-		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -129,6 +122,14 @@
 			);
 			name = Supporting;
 			path = Crossword/Supporting;
+			sourceTree = "<group>";
+		};
+		BE4208CCF11AC9661CCA79A7 /* Crossword */ = {
+			isa = PBXGroup;
+			children = (
+				B8F11DDD1BACD9D573B33D03 /* ExpoModulesProvider.swift */,
+			);
+			name = Crossword;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -139,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Crossword" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				8D272051A6C6AA33CBDA9BA5 /* [Expo] Configure project */,
+				EEF97425D1A94619A9C2F40D /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				C2F79A7E9A7296522CE9E55D /* [CP] Embed Pods Frameworks */,
+				F725B19098D04EFDD51A8431 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -195,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				8133201D43B3B92F5B733577 /* PrivacyInfo.xcprivacy in Resources */,
+				997D2D9ABEA05FAFF7CAF0E9 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,7 +278,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Crossword/Pods-Crossword-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		8D272051A6C6AA33CBDA9BA5 /* [Expo] Configure project */ = {
+		EEF97425D1A94619A9C2F40D /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -301,7 +302,7 @@
 			shellPath = /bin/sh;
 			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Crossword/expo-configure-project.sh\"\n";
 		};
-		C2F79A7E9A7296522CE9E55D /* [CP] Embed Pods Frameworks */ = {
+		F725B19098D04EFDD51A8431 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -331,7 +332,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				EF20CD1E1DBFD5541FFB85AC /* ExpoModulesProvider.swift in Sources */,
+				88D3BB23D84897829FB18D59 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -340,12 +341,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 017E5FB4513AE80578025362 /* Pods-Crossword.debug.xcconfig */;
+			baseConfigurationReference = B8AC883F30B0E89F419EF435 /* Pods-Crossword.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Crossword/Crossword.entitlements;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -366,7 +367,6 @@
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.conradscrossword;
 				PRODUCT_NAME = "Crossword";
-				PROVISIONING_PROFILE_SPECIFIER = "conrad-provisioning-profile-for-distribution";
 				SWIFT_OBJC_BRIDGING_HEADER = "Crossword/Crossword-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -377,16 +377,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F5F887A5D1E6DF37D0505786 /* Pods-Crossword.release.xcconfig */;
+			baseConfigurationReference = 82E272251347EA5CC189F6AE /* Pods-Crossword.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Crossword/Crossword.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution: Conrad Kuklinsky (48NP6Y8GUR)";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 48NP6Y8GUR;
+				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = Crossword/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -402,8 +398,6 @@
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.conradscrossword;
 				PRODUCT_NAME = "Crossword";
-				PROVISIONING_PROFILE_SPECIFIER = "conrad-provisioning-profile-for-distribution";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "conrad-provisioning-profile-for-distribution";
 				SWIFT_OBJC_BRIDGING_HEADER = "Crossword/Crossword-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1";

@@ -18,7 +18,7 @@ In the Apple Developer Console, create a new signing cert (download it) and asso
 
 ### Debugging in Xcode
 
-This shouldn't be necessary, but if something isn't working on TestFlight, but it is working in Expo Go (connected to the dev backend), you can test in Xcode by simply connecting a simulator to the project and clicking `run`.
+This shouldn't often be necessary, but if something isn't working on TestFlight, but it is working in Expo Go (connected to the dev backend), you can test in Xcode by simply connecting a simulator to the project and clicking `Product->Run`. If see "development mode", just do `Product->Schema->Edit Scheme` and select `release` mode.
 
 ## Release to Android
 
