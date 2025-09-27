@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, Keyboard } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, Keyboard, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -45,6 +45,12 @@ export default function SettingsScreen() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
 
+  // Delete account state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const { token, setAuthToken, clearAuthToken, syncAuth } = useAuth();
   const { syncFriendRequestCount } = useFriendRequestCount();
 
@@ -62,6 +68,8 @@ export default function SettingsScreen() {
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const isEditingUsername = editingUsername || (!!profile && !profile?.username);
+
+  const isDeleteConfirmValid = useMemo(() => deleteConfirmText.trim().toLowerCase() === 'delete', [deleteConfirmText]);
 
   const refreshUserProfile = useCallback(async (tokenOverride?: string) => {
     try { syncAuth().catch(() => {}); } catch {} // ignore failures
@@ -304,6 +312,67 @@ export default function SettingsScreen() {
     setUsernameError(null);
   }, []);
 
+  const openDeleteModal = useCallback(() => {
+    setShowDeleteModal(true);
+    setDeleteConfirmText('');
+    setDeleteError(null);
+  }, []);
+
+  const closeDeleteModal = useCallback(() => {
+    setShowDeleteModal(false);
+    setDeleteConfirmText('');
+    setDeleteError(null);
+  }, []);
+
+  const deleteAccount = useCallback(async () => {
+    if (!isDeleteConfirmValid) return;
+    
+    setDeleteLoading(true);
+    setDeleteError(null);
+    
+    try {
+      const headers = getAuthHeaders(token);
+      const response = await fetch(withBaseUrl('/api/delete'), {
+        method: 'DELETE',
+        headers
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error?.error || 'Failed to delete account');
+      }
+      
+      // Account successfully deleted - clear auth and close modal
+      await clearAuthToken();
+      setProfile(null);
+      closeDeleteModal();
+      
+      // Reset all form state
+      setStep('enterEmail');
+      setEmail('');
+      setOtp('');
+      setSubmitMessage(null);
+      setSubmitError(null);
+      setIsNetworkSubmitError(false);
+      setEditingUsername(false);
+      setUsernameInput('');
+      setUsernameError(null);
+      setUsernameLoading(false);
+      setEmailErrorVisible(false);
+      setOtpAttemptsRemaining(null);
+      setResendRemainingSeconds(0);
+      
+      // Show success message
+      Alert.alert('Account Deleted', 'Your account has been successfully deleted.');
+      
+    } catch (error) {
+      const { message } = getFriendlyError(error, 'Failed to delete account');
+      setDeleteError(message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [isDeleteConfirmValid, token, clearAuthToken, closeDeleteModal]);
+
   // Resend countdown timer (1-minute cooldown from last send)
   useEffect(() => {
     if (step !== 'enterOtp') {
@@ -463,6 +532,10 @@ export default function SettingsScreen() {
             <Pressable style={styles.buttonTertiary} onPress={onLogout} disabled={logoutLoading}>
               <ThemedText style={styles.buttonTertiaryText}>{logoutLoading ? 'Logging out…' : 'Log out'}</ThemedText>
             </Pressable>
+            
+            <Pressable style={styles.buttonDanger} onPress={openDeleteModal} disabled={logoutLoading}>
+              <ThemedText style={styles.buttonDangerText}>Delete Account</ThemedText>
+            </Pressable>
           </ThemedView>
         ) : (token && !submitLoading) ? null : (
           <ThemedView style={styles.section}>
@@ -556,6 +629,67 @@ export default function SettingsScreen() {
           </ThemedView>
         )}
       </Pressable>
+      
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeDeleteModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <ThemedText style={styles.modalTitle}>Delete Account</ThemedText>
+            <ThemedText style={styles.modalMessage}>
+              This action cannot be undone. All your data, including puzzle completions and friends, will be permanently deleted.
+            </ThemedText>
+            <ThemedText style={styles.modalConfirmPrompt}>
+              Type "delete" to confirm:
+            </ThemedText>
+            <TextInput
+              style={styles.modalInput}
+              value={deleteConfirmText}
+              onChangeText={(text) => {
+                setDeleteConfirmText(text);
+                if (deleteError) setDeleteError(null);
+              }}
+              placeholder="Type 'delete' to confirm"
+              autoCapitalize="none"
+              autoCorrect={false}
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1}
+            />
+            {deleteError && (
+              <ThemedText style={styles.modalError}>{deleteError}</ThemedText>
+            )}
+            <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={closeDeleteModal}
+                disabled={deleteLoading}
+              >
+                <ThemedText style={styles.modalCancelButtonText}>Cancel</ThemedText>
+              </Pressable>
+              <Pressable 
+                style={[
+                  styles.modalButton, 
+                  styles.modalDeleteButton,
+                  (!isDeleteConfirmValid || deleteLoading) ? styles.modalDeleteButtonDisabled : null
+                ]} 
+                onPress={deleteAccount}
+                disabled={!isDeleteConfirmValid || deleteLoading}
+              >
+                <ThemedText style={[
+                  styles.modalDeleteButtonText,
+                  (!isDeleteConfirmValid || deleteLoading) ? styles.modalDeleteButtonTextDisabled : null
+                ]}>
+                  {deleteLoading ? 'Deleting…' : 'Delete Account'}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -673,7 +807,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonTertiaryText: {
-    color: '#FF3B30',
+    color: '#000',
     fontWeight: '700',
   },
   buttonLink: {
@@ -824,5 +958,96 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  buttonDanger: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#f2f2f7',
+    alignItems: 'center',
+  },
+  buttonDangerText: {
+    color: '#FF3B30',
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000',
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  modalConfirmPrompt: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 8,
+  },
+  modalInput: {
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5ea',
+    paddingHorizontal: 12,
+    backgroundColor: '#fff',
+    fontSize: 16,
+  },
+  modalError: {
+    fontSize: 14,
+    color: '#000000',
+    textAlign: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: '#f2f2f7',
+  },
+  modalCancelButtonText: {
+    color: '#333',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  modalDeleteButton: {
+    backgroundColor: '#FF3B30',
+  },
+  modalDeleteButtonDisabled: {
+    backgroundColor: '#f2f2f7',
+  },
+  modalDeleteButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  modalDeleteButtonTextDisabled: {
+    color: '#999',
   },
 });
