@@ -577,6 +577,19 @@ export default function CrosswordScreen() {
     }
   }, [gameState.currentWord, loading, error, completionSeconds, shouldRefocus]);
 
+  // Trigger a puzzle load when re-opening the app
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        loadPuzzle({ background: true });
+      }
+    };
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      subscription.remove();
+    };
+  }, [loadPuzzle]);
+
     // Handle focus: manage timer + load/refresh puzzle; also track AppState while focused
   useFocusEffect(
     useCallback(() => {
