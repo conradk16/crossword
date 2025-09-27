@@ -12,9 +12,9 @@ Prod backend is not intended to be useed with Expo Go - instead create a release
 
 ## Releases to iOS
 
-Run `npx expo prebuild -p ios` to link the latest version of the expo project with xcode. Open `ios/xcworkspace` in XCode.
+First update the version in `app.json`. Then run `npx expo prebuild -p ios` to link the latest version of the expo project with xcode. Open `ios/xcworkspace` in XCode.
 
-In the Apple Developer Console, create a new signing cert (download it) and associated profile (use "distribution to ios"). Then double click the cert to connect it to your keychain. Then in XCode, under the build settings, select that cert and profile. Finally click product->archive to create the archive. Once completed, it should open a popup, then click "distribute to app store connect". Wait a few minutes, then open up test flight and download the app. Proceed to test it.
+In the Apple Developer Console, create a new signing cert (download it) and associated profile (use "distribution to ios"). Then double click the cert to connect it to your keychain. Then in XCode, under the build settings, select that cert and profile. Then open `Info` in the file navigator, and add one to the bundle version. Finally click product->archive to create the archive. Once completed, it should open a popup, then click "distribute to app store connect". Wait a few minutes, then open up test flight and download the app. Proceed to test it.
 
 ### Debugging in Xcode
 

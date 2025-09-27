@@ -51,6 +51,7 @@ export default function CrosswordScreen() {
   const { syncFriendRequestCount } = useFriendRequestCount();
   const [helpMenuOpen, setHelpMenuOpen] = useState(false);
   const [helpMenuAnchor, setHelpMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [isInitialRenderComplete, setIsInitialRenderComplete] = useState(false);
   
 
   // Function to play bell sound when puzzle is completed
@@ -138,6 +139,7 @@ export default function CrosswordScreen() {
       setPuzzleData(data);
       if (isNewOrChanged) {
         // New puzzle date detected: reset completion/modal state and ensure timer can run
+        setLoading(true);
         setCompletionSeconds(null);
         setShowCompletionModal(false);
         setIsTimerPaused(false);
@@ -211,15 +213,7 @@ export default function CrosswordScreen() {
       // If we don't know the date yet and no puzzle is loaded, we have nothing to show
       setError(getFriendlyError(err, 'Failed to load puzzle').message);
     } finally {
-      if (!background) {
-        setLoading(false);
-        // hide the splash screen
-        try {
-          await SplashScreen.hideAsync();
-        } catch (e) {
-          console.log('Error hiding splash screen:', e);
-        }
-      }
+      setLoading(false);
     }
   }, [updateGridHighlighting, syncAuth, syncFriendRequestCount, lastLoadedDate]);
 
@@ -576,6 +570,21 @@ export default function CrosswordScreen() {
       }, 100);
     }
   }, [gameState.currentWord, loading, error, completionSeconds, shouldRefocus]);
+
+  // Hide splash screen after initial render is complete
+  useEffect(() => {
+    if (!loading && puzzleData && !isInitialRenderComplete) {
+      setIsInitialRenderComplete(true);
+      // Use requestAnimationFrame to ensure the render is complete
+      requestAnimationFrame(async () => {
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {
+          console.log('Error hiding splash screen:', e);
+        }
+      });
+    }
+  }, [loading, puzzleData, isInitialRenderComplete]);
 
   // Trigger a puzzle load when re-opening the app
   useEffect(() => {
