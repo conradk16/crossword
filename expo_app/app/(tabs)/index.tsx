@@ -252,9 +252,7 @@ export default function CrosswordScreen() {
 
     updateGridHighlighting(grid, row, col, targetWord);
     setShouldRefocus(true);
-    setTimeout(() => {
-      textInputRef.current?.focus();
-    }, 0);
+    textInputRef.current?.focus();
   }, [puzzleData, grid, gameState, updateGridHighlighting]);
 
   const handleBackgroundPress = useCallback(() => {
@@ -561,22 +559,15 @@ export default function CrosswordScreen() {
     return () => clearInterval(interval);
   }, [completionSeconds, isTimerPaused, puzzleData]);
 
-  // Focus TextInput when component mounts or when game state changes, but not if puzzle is solved
-  // in order to keep the keyboard appropriately up or down
-  useEffect(() => {
-    if (gameState.currentWord && !loading && !error && !completionSeconds && shouldRefocus) {
-      setTimeout(() => {
-        textInputRef.current?.focus();
-      }, 100);
-    }
-  }, [gameState.currentWord, loading, error, completionSeconds, shouldRefocus]);
-
-  // Hide splash screen after initial render is complete
+  // Hide splash screen and pull up the keyboard after initial render is complete
   useEffect(() => {
     if (!loading && puzzleData && !isInitialRenderComplete) {
       setIsInitialRenderComplete(true);
       // Use requestAnimationFrame to ensure the render is complete
       requestAnimationFrame(async () => {
+        // bring up the keyboard
+        setShouldRefocus(true);
+        textInputRef.current?.focus();
         try {
           await SplashScreen.hideAsync();
         } catch (e) {
@@ -714,18 +705,11 @@ export default function CrosswordScreen() {
               autoCorrect={false}
               keyboardType="default"
               selectTextOnFocus={true}
-              autoFocus={true}
+              autoFocus={false}
               blurOnSubmit={false}
               multiline={false}
               returnKeyType="next"
               caretHidden={true}
-              onBlur={() => {
-                if (!completionSeconds && shouldRefocus) {
-                  setTimeout(() => {
-                    textInputRef.current?.focus();
-                  }, 0);
-                }
-              }}
               allowFontScaling={false}
               maxFontSizeMultiplier={1}
             />
@@ -744,7 +728,6 @@ export default function CrosswordScreen() {
               style={styles.menuBackdrop}
               onPress={() => {
                 setHelpMenuOpen(false);
-                setTimeout(() => textInputRef.current?.focus(), 0);
               }}
             />
             <View
@@ -760,7 +743,6 @@ export default function CrosswordScreen() {
                 style={styles.menuItem}
                 onPress={() => {
                   setHelpMenuOpen(false);
-                  setTimeout(() => textInputRef.current?.focus(), 0);
                   handleRevealSquare();
                 }}
               >
@@ -773,7 +755,6 @@ export default function CrosswordScreen() {
                     style={styles.menuItem}
                     onPress={() => {
                       setHelpMenuOpen(false);
-                      setTimeout(() => textInputRef.current?.focus(), 0);
                       handleRevealPuzzle();
                     }}
                   >
