@@ -776,14 +776,25 @@ export default function CrosswordScreen() {
         onRequestClose={handleDismissModal}
       >
         <Pressable style={styles.modalOverlay} onPress={handleDismissModal}>
-          <BlurView intensity={20} style={styles.blurOverlay}>
-            <View style={styles.modalContentWrapper}>
-              <View style={styles.modalContent}>
-                <ThemedText style={styles.modalTitle}>Solved!</ThemedText>
-                <ThemedText style={styles.modalTime}>{formatTime(gameState.elapsedTime)}</ThemedText>
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={20} style={styles.blurOverlay}>
+              <View style={styles.modalContentWrapper}>
+                <View style={styles.modalContent}>
+                  <ThemedText style={styles.modalTitle}>Solved!</ThemedText>
+                  <ThemedText style={styles.modalTime}>{formatTime(gameState.elapsedTime)}</ThemedText>
+                </View>
+              </View>
+            </BlurView>
+          ) : (
+            <View style={styles.androidOverlay}>
+              <View style={styles.modalContentWrapper}>
+                <View style={styles.modalContent}>
+                  <ThemedText style={styles.modalTitle}>Solved!</ThemedText>
+                  <ThemedText style={styles.modalTime}>{formatTime(gameState.elapsedTime)}</ThemedText>
+                </View>
               </View>
             </View>
-          </BlurView>
+          )}
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -879,6 +890,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
+  },
+  androidOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContentWrapper: {
     flex: 1,
