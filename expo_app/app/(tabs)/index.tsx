@@ -561,7 +561,7 @@ export default function CrosswordScreen() {
 
   // Hide splash screen and pull up the keyboard after initial render is complete
   useEffect(() => {
-    if (!loading && puzzleData && !isInitialRenderComplete) {
+    if (!loading && (puzzleData || error) && !isInitialRenderComplete) {
       setIsInitialRenderComplete(true);
       // Use requestAnimationFrame to ensure the render is complete
       requestAnimationFrame(async () => {
@@ -575,7 +575,7 @@ export default function CrosswordScreen() {
         }
       });
     }
-  }, [loading, puzzleData, isInitialRenderComplete]);
+  }, [loading, puzzleData, isInitialRenderComplete, error]);
 
   // Trigger a puzzle load when re-opening the app
   useEffect(() => {
