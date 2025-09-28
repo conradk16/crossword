@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions, Platform } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
@@ -66,7 +66,7 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
               styles.directionText,
               { fontSize: smallHeaderMode ? 13 : 14 },
             ]}>
-              {direction === 'across' ? '→' : '↓'} {direction.toUpperCase()}
+              {Platform.OS === 'ios' ? (direction === 'across' ? '→ ' : '↓ ') : ''}{direction.toUpperCase()}
             </ThemedText>
           </View>
         </View>
@@ -175,10 +175,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 0,
     borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   directionText: {
     color: 'white',
     fontWeight: '600',
+    textAlign: 'center',
+    textAlignVertical: 'center',
   },
   helpText: {
     fontWeight: '600',

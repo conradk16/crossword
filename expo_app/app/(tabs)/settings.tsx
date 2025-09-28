@@ -637,8 +637,8 @@ export default function SettingsScreen() {
         animationType="fade"
         onRequestClose={closeDeleteModal}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+        <Pressable style={styles.modalOverlay} onPress={closeDeleteModal}>
+          <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
             <ThemedText style={styles.modalTitle}>Delete Account</ThemedText>
             <ThemedText style={styles.modalMessage}>
               This action cannot be undone. All your data, including puzzle completions and friends, will be permanently deleted.
@@ -687,8 +687,8 @@ export default function SettingsScreen() {
                 </ThemedText>
               </Pressable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
@@ -973,9 +973,10 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 20,
+    paddingTop: 60,
+    paddingHorizontal: 20,
   },
   modalContainer: {
     backgroundColor: '#fff',
@@ -1034,7 +1035,7 @@ const styles = StyleSheet.create({
   modalCancelButtonText: {
     color: '#333',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
   },
   modalDeleteButton: {
     backgroundColor: '#FF3B30',
@@ -1045,7 +1046,7 @@ const styles = StyleSheet.create({
   modalDeleteButtonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
   },
   modalDeleteButtonTextDisabled: {
     color: '#999',
