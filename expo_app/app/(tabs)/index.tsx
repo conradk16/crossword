@@ -652,6 +652,7 @@ export default function CrosswordScreen() {
       >
         <ScrollView
           style={styles.scrollView}
+          contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="none"
@@ -847,6 +848,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   content: {
     paddingBottom: 0,
   },
@@ -857,6 +861,7 @@ const styles = StyleSheet.create({
   },
   pressableWrapper: {
     paddingHorizontal: 0,
+    flex: 1,
   },
   loadingText: {
     fontSize: 18,
