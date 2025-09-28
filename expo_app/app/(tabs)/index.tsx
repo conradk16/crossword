@@ -906,9 +906,8 @@ const styles = StyleSheet.create({
   },
   modalContentWrapper: {
     flex: 1,
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: '20%', // Position content in top third of screen
   },
   modalContent: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
