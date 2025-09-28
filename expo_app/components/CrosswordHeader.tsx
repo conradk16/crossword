@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   measureText: {
     position: 'absolute',
-    opacity: 0,
+    display: 'none',
   },
   clueContainer: {
     flex: 1,
