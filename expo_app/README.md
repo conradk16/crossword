@@ -22,4 +22,20 @@ This shouldn't often be necessary, but if something isn't working on TestFlight,
 
 ## Release to Android
 
-Todo
+Run `npx expo prebuild -p android`, then `cd android`, then `open -a "Android Studio"` to open Android Studio.
+
+### Setting an upload key
+
+Generate an upload key with `keytool -genkeypair -v -keystore my-upload-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000` and set a password. Save a copy of the key and password somewhere safe. Then put `my-upload-key.keystore` in `expo_app/android/app` and create a .env file in the `expo_app/android` directory with `CROSSWORD_UPLOAD_KEY_PASSWORD` defined, so that `gradle.properties` can find it.
+
+Also, to make the debug key, just do `keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000`. Probably not necessary if you only run in release mode (see below).
+
+### Running on a simulator
+
+`Build->Select Build Variant` and choose release. The just press run.
+
+FYI: I was encountering an error `Installed Build Tools revision 36.0.0 is corrupted`, which ended up requiring manually removing the offending directory, "uninstalling" it with the SDK Manager, and then reinstalling.
+
+### Generating signed app bundle
+
+Select `Build -> Generate Signed App Bundle`, then follow steps.
