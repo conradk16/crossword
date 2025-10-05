@@ -191,11 +191,11 @@ export default function CrosswordScreen() {
         }));
 
         updateGridHighlighting(hydratedGrid, start.row, start.col, initialWord);
-      }
-
-      // If solved, ensure completion time is synced
-      if (completionSeconds) {
-        persistProgress(grid, { completionSeconds: completionSeconds });
+      } else {
+        // Same day: ensure completion time stays synced if previously solved
+        if (completionSeconds) {
+          persistProgress(grid, { completionSeconds: completionSeconds });
+        }
       }
 
       // Track latest date
