@@ -186,8 +186,8 @@ export function getNextPositionForOverwriteAdvance(
   return null;
 }
 
-// When typing into an empty cell, advance to the next empty cell using the
-// same rules the screen uses: prefer next empty in current word; if the board
+// When typing into an empty cell, advance to the next empty cell: prefer next empty in current word; if none after
+// current position, check for empties at the start of the same word; if the board
 // has no empties, advance inline/next word; otherwise search next empty in
 // same direction, then wrap, then other direction.
 export function getNextPositionForEmptyAdvance(
@@ -201,6 +201,14 @@ export function getNextPositionForEmptyAdvance(
   // 1) Next empty in current word, after current position
   const currentIndex = currentWord.cells.findIndex(c => c.row === currentRow && c.col === currentCol);
   for (let i = currentIndex + 1; i < currentWord.cells.length; i++) {
+    const cellPos = currentWord.cells[i];
+    if (!grid[cellPos.row][cellPos.col].userLetter) {
+      return { row: cellPos.row, col: cellPos.col, direction };
+    }
+  }
+
+  // 2) If no empty after current position, check for empty slots before current position in same word
+  for (let i = 0; i < currentIndex; i++) {
     const cellPos = currentWord.cells[i];
     if (!grid[cellPos.row][cellPos.col].userLetter) {
       return { row: cellPos.row, col: cellPos.col, direction };
@@ -227,19 +235,19 @@ export function getNextPositionForEmptyAdvance(
     return null;
   }
 
-  // 2) Next empty among subsequent clues in same direction
+  // 3) Next empty among subsequent clues in same direction
   const nextBlankSameDir = findNextBlankSpotInDirectionAfter(currentWord.clue, direction, clues, grid);
   if (nextBlankSameDir) {
     return { row: nextBlankSameDir.row, col: nextBlankSameDir.col, direction };
   }
 
-  // 3) Wrap to first empty in same direction
+  // 4) Wrap to first empty in same direction
   const firstEmptySameDir = findFirstEmptySpotInDirection(direction, clues, grid);
   if (firstEmptySameDir) {
     return { row: firstEmptySameDir.row, col: firstEmptySameDir.col, direction };
   }
 
-  // 4) Switch to other direction, first empty there
+  // 5) Switch to other direction, first empty there
   const otherDir: Direction = direction === 'across' ? 'down' : 'across';
   const firstEmptyOtherDir = findFirstEmptySpotInDirection(otherDir, clues, grid);
   if (firstEmptyOtherDir) {
