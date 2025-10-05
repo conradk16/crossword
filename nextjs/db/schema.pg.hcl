@@ -125,7 +125,7 @@ table "users" {
   }
 }
 
-// Stores the current session token (hashed) per user. One active token per user.
+// Stores session tokens (hashed) per user. Allows multiple concurrent sessions per user.
 table "user_sessions" {
   schema = schema.public
 
@@ -143,9 +143,9 @@ table "user_sessions" {
     default = sql("now()")
   }
 
-  // Ensure a single session per user (overwrites will replace this row)
+  // Composite primary key allows multiple sessions per user (differentiated by timestamp)
   primary_key {
-    columns = [column.user_id]
+    columns = [column.user_id, column.created_at]
   }
 
   // Fast lookup by token hash for authenticated requests

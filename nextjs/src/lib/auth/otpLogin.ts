@@ -41,11 +41,10 @@ export async function verifyOtpAndLogin(email: string, otp: string) {
     );
     const userId = userRows[0].user_id;
 
-    // Upsert session token for this user (overwrites previous token)
+    // Insert new session token (allows multiple concurrent sessions per user)
     await query(
       `INSERT INTO user_sessions (user_id, token_hash)
-       VALUES ($1, $2)
-       ON CONFLICT (user_id) DO UPDATE SET token_hash = EXCLUDED.token_hash, created_at = now()`,
+       VALUES ($1, $2)`,
       [userId, tokenHash]
     );
 

@@ -22,6 +22,10 @@ On startup, Atlas automatically runs and applies updates to the postgres databas
 See `package.json` scripts for the local Atlas apply code, and `entrypoint.sh` for the deployment Atlas apply code.
 Schema is defined in `db/schema.pg.hcl`.
 
+### Logging in via ssh
+
+docker exec -it postgres psql -U crossword_db_user -d crossword_db
+
 ## Deployment
 
 To deploy the database locally, use Docker Desktop and the `docker-compose-local.yml` at the root of the monorepo.
