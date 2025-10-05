@@ -112,6 +112,7 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
         {clueContainerWidth != null && clueMode === 'default' && (
           <ThemedText
             style={[styles.measureText, { width: clueContainerWidth, fontSize: 18, lineHeight: 22 }]}
+            numberOfLines={2}
             onTextLayout={(e) => {
               const wraps = e.nativeEvent.lines.length > 1;
               if (wraps) {
@@ -125,6 +126,7 @@ export function CrosswordHeader({ elapsedTime, currentClue, direction, onRevealS
         {clueContainerWidth != null && clueMode === 'small' && (
           <ThemedText
             style={[styles.measureText, { width: clueContainerWidth, fontSize: 16, lineHeight: 18 }]}
+            numberOfLines={2}
             onTextLayout={(e) => {
               const wraps = e.nativeEvent.lines.length > 1;
               if (wraps) {
@@ -193,7 +195,8 @@ const styles = StyleSheet.create({
   },
   measureText: {
     position: 'absolute',
-    display: 'none',
+    opacity: 0,
+    zIndex: -1,
   },
   clueContainer: {
     flex: 1,
