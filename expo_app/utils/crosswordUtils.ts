@@ -197,6 +197,7 @@ export function getNextPositionForEmptyAdvance(
   currentWord: { clue: CrosswordClue; cells: { row: number; col: number }[] },
   clues: CrosswordClue[],
   grid: CrosswordCell[][],
+  nextButton: boolean = false,
 ): { row: number; col: number; direction: Direction } | null {
   // 1) Next empty in current word, after current position
   const currentIndex = currentWord.cells.findIndex(c => c.row === currentRow && c.col === currentCol);
@@ -208,10 +209,13 @@ export function getNextPositionForEmptyAdvance(
   }
 
   // 2) If no empty after current position, check for empty slots before current position in same word
-  for (let i = 0; i < currentIndex; i++) {
-    const cellPos = currentWord.cells[i];
-    if (!grid[cellPos.row][cellPos.col].userLetter) {
-      return { row: cellPos.row, col: cellPos.col, direction };
+  // Skip this step if nextButton is true (user pressed next button, not typing)
+  if (!nextButton) {
+    for (let i = 0; i < currentIndex; i++) {
+      const cellPos = currentWord.cells[i];
+      if (!grid[cellPos.row][cellPos.col].userLetter) {
+        return { row: cellPos.row, col: cellPos.col, direction };
+      }
     }
   }
 

@@ -19,7 +19,7 @@ import { getFriendlyError } from '@/utils/errorUtils';
 import { prefetchLeaderboard } from '@/services/leaderboardPrefetch';
 
 import { CrosswordData, CrosswordCell, Direction, GameState } from '@/types/crossword';
-import { convertGridToCells, findWordForPosition, isPuzzleComplete, findNextBlankSpotInDirectionAfter, findNextClueStartInDirectionAfter, findFirstEmptySpotInDirection, getNextCellInWord, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection, getNextPositionForOverwriteAdvance, getNextPositionForEmptyAdvance, getPrevPositionForBackspace } from '@/utils/crosswordUtils';
+import { convertGridToCells, findWordForPosition, isPuzzleComplete, findFirstEmptySpotInDirection, formatTime, hasAnyEmptyCells, getFirstClueStartInDirection, getNextPositionForOverwriteAdvance, getNextPositionForEmptyAdvance, getPrevPositionForBackspace } from '@/utils/crosswordUtils';
 
 export default function CrosswordScreen() {
   const [puzzleData, setPuzzleData] = useState<CrosswordData | null>(null);
@@ -456,6 +456,34 @@ export default function CrosswordScreen() {
     }
   }, [inputValue, handleKeyPress, handleBackspace]);
 
+  const handleNext = useCallback(() => {
+    if (!puzzleData || !gameState.currentWord) return;
+
+    const next = getNextPositionForEmptyAdvance(
+      gameState.selectedRow,
+      gameState.selectedCol,
+      gameState.direction,
+      gameState.currentWord,
+      puzzleData.clues,
+      grid,
+      true, // nextButton = true to skip backward-looking in same word
+    );
+
+    if (next) {
+      const newWord = findWordForPosition(next.row, next.col, next.direction, puzzleData.clues, grid);
+      if (newWord) {
+        setGameState(prev => ({
+          ...prev,
+          selectedRow: next.row,
+          selectedCol: next.col,
+          direction: next.direction,
+          currentWord: newWord,
+        }));
+        updateGridHighlighting(grid, next.row, next.col, newWord);
+      }
+    }
+  }, [puzzleData, gameState, grid, updateGridHighlighting]);
+
   const handleRevealSquare = useCallback(() => {
     if (!puzzleData || !gameState.currentWord) return;
 
@@ -701,6 +729,7 @@ export default function CrosswordScreen() {
                   handleBackspace();
                 }
               }}
+              onSubmitEditing={handleNext}
               style={styles.hiddenInput}
               autoCapitalize="characters"
               autoCorrect={false}
