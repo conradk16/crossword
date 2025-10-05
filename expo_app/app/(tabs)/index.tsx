@@ -717,7 +717,7 @@ export default function CrosswordScreen() {
             {completionSeconds && (
               <ThemedView style={styles.completionBanner}>
                 <ThemedText style={styles.completionTitle}>Nice work!</ThemedText>
-                <ThemedText style={styles.completionSubtitle}>Finished in {formatTime(gameState.elapsedTime)}</ThemedText>
+                <ThemedText style={styles.completionSubtitle}>New puzzle at midnight! (PT)</ThemedText>
               </ThemedView>
             )}
           </ThemedView>
