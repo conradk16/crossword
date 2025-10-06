@@ -52,7 +52,7 @@ export default function CrosswordScreen() {
   const { syncFriendRequestCount } = useFriendRequestCount();
   const [helpMenuOpen, setHelpMenuOpen] = useState(false);
   const [helpMenuAnchor, setHelpMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [isInitialRenderComplete, setIsInitialRenderComplete] = useState(false);
+  const isInitialRenderComplete = useRef(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showReadyModal, setShowReadyModal] = useState(false);
   
@@ -136,16 +136,16 @@ export default function CrosswordScreen() {
         throw new Error('Failed to fetch puzzle');
       }
       const data: CrosswordData = await response.json();
+      setPuzzleData(data);
 
       // If first load or the date changed, hydrate grid and selection
       const isNewOrChanged = lastLoadedDate !== data.date;
-      setPuzzleData(data);
       if (isNewOrChanged) {
         // New puzzle date detected: reset completion/modal state and ensure timer can run
-        setLoading(true);
         setCompletionSeconds(null);
         setShowCompletionModal(false);
         setIsTimerPaused(false);
+        var hasStartedVar = false; // need a var since the useState doesn't update quickly enough
         const baseGrid = convertGridToCells(data);
 
         // Try to hydrate with saved state for this date
@@ -172,32 +172,49 @@ export default function CrosswordScreen() {
           }
           
           if (saved?.hasStarted) {
-            setHasStarted(true);
+            hasStartedVar = true;
           }
+          
         } catch {}
 
-        // Keep the ticking ref in sync with restored elapsed seconds
-        elapsedRef.current = restoredElapsedSeconds;
+        // update the useState from the var
+        setHasStarted(hasStartedVar);
 
-        setGrid(hydratedGrid);
+        const updateGameState = () => {
+          // Keep the ticking ref in sync with restored elapsed seconds
+          elapsedRef.current = restoredElapsedSeconds;
 
-        // Set initial selection to first empty cell (prefer across, then down)
-        const firstAcrossEmpty = findFirstEmptySpotInDirection('across', data.clues, hydratedGrid);
-        const firstDownEmpty = !firstAcrossEmpty ? findFirstEmptySpotInDirection('down', data.clues, hydratedGrid) : null;
-        const start = firstAcrossEmpty || firstDownEmpty || getFirstClueStartInDirection('across', data.clues) || { row: 0, col: 0, direction: 'across' as Direction };
-        const initialWord = findWordForPosition(start.row, start.col, start.direction, data.clues, hydratedGrid);
+          setGrid(hydratedGrid);
 
-        setGameState(prev => ({
-          ...prev,
-          selectedRow: start.row,
-          selectedCol: start.col,
-          direction: start.direction,
-          currentWord: initialWord,
-          puzzleDate: data.date,
-          elapsedTime: restoredElapsedSeconds,
-        }));
+          // Set initial selection to first empty cell (prefer across, then down)
+          const firstAcrossEmpty = findFirstEmptySpotInDirection('across', data.clues, hydratedGrid);
+          const firstDownEmpty = !firstAcrossEmpty ? findFirstEmptySpotInDirection('down', data.clues, hydratedGrid) : null;
+          const start = firstAcrossEmpty || firstDownEmpty || getFirstClueStartInDirection('across', data.clues) || { row: 0, col: 0, direction: 'across' as Direction };
+          const initialWord = findWordForPosition(start.row, start.col, start.direction, data.clues, hydratedGrid);
 
-        updateGridHighlighting(hydratedGrid, start.row, start.col, initialWord);
+          setGameState(prev => ({
+            ...prev,
+            selectedRow: start.row,
+            selectedCol: start.col,
+            direction: start.direction,
+            currentWord: initialWord,
+            puzzleDate: data.date,
+            elapsedTime: restoredElapsedSeconds,
+          }));
+          
+          updateGridHighlighting(hydratedGrid, start.row, start.col, initialWord);
+        };
+
+        // new day, haven't closed app, so show the ready modal
+        // Defer game state updates if modal is showing, otherwise update immediately
+        if (!hasStartedVar && isInitialRenderComplete.current) {
+          setShowReadyModal(true);
+          requestAnimationFrame(() => {
+            setTimeout(updateGameState, 150);
+          });
+        } else {
+          updateGameState();
+        }
       } else {
         // Same day: ensure completion time stays synced if previously solved
         if (completionSeconds) {
@@ -630,10 +647,10 @@ export default function CrosswordScreen() {
     return () => clearInterval(interval);
   }, [completionSeconds, isTimerPaused, puzzleData, hasStarted]);
 
-  // Hide splash screen and pull up the keyboard after initial render is complete
+  // Hide splash screen after initial render is complete
   useEffect(() => {
-    if (!loading && (puzzleData || error) && !isInitialRenderComplete) {
-      setIsInitialRenderComplete(true);
+    if (!loading && (puzzleData || error) && !isInitialRenderComplete.current) {
+      isInitialRenderComplete.current = true;
       // Use requestAnimationFrame to ensure the render is complete
       requestAnimationFrame(async () => {
         try {
@@ -645,7 +662,7 @@ export default function CrosswordScreen() {
         }
       });
     }
-  }, [loading, puzzleData, isInitialRenderComplete, error]);
+  }, [loading, puzzleData, error]);
 
   // Trigger a puzzle load when re-opening the app
   useEffect(() => {
