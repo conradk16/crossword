@@ -1064,12 +1064,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#d4e9ff',
   },
   completionContent: {
-    flexDirection: 'row',
+    position: 'relative',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
   completionTextContainer: {
-    flex: 1,
     alignItems: 'center',
   },
   completionTitle: {
@@ -1084,8 +1083,9 @@ const styles = StyleSheet.create({
     color: '#007AFF',
   },
   shareButton: {
+    position: 'absolute',
+    right: 0,
     padding: 8,
-    marginLeft: 12,
   },
   menuRoot: {
     position: 'absolute',
