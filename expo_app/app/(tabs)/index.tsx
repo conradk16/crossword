@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, ScrollView, Platform, TextInput, Dimensions, View, Pressable, Keyboard, useWindowDimensions, Modal, AppState } from 'react-native';
+import { StyleSheet, ScrollView, Platform, TextInput, Dimensions, View, Pressable, Keyboard, useWindowDimensions, Modal, AppState, Share } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Audio, InterruptionModeAndroid } from 'expo-av';
+import { Ionicons } from '@expo/vector-icons';
 import { loadPuzzleState, savePuzzleState, saveElapsedSeconds } from '@/services/storage';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { useAuth } from '@/services/AuthContext';
@@ -540,6 +541,31 @@ export default function CrosswordScreen() {
     setShowCompletionModal(false);
   }, []);
 
+  const handleShareScore = useCallback(async () => {
+    if (!completionSeconds || !puzzleData) return;
+
+    const formattedTime = formatTime(completionSeconds);
+    
+    // iOS App Store link
+    const iosAppStoreUrl = 'https://apps.apple.com/app/id6753033018';
+    
+    // Android Play Store link
+    const androidPlayStoreUrl = 'https://play.google.com/store/apps/details?id=com.conradscrossword';
+    
+    // Use the appropriate link for the current platform
+    const appStoreLink = Platform.OS === 'ios' ? iosAppStoreUrl : androidPlayStoreUrl;
+    
+    const message = `I completed Conrad's Crossword in ${formattedTime}!\n\n${appStoreLink}`;
+
+    try {
+      await Share.share({
+        message,
+      });
+    } catch (error) {
+      console.log('Error sharing score:', error);
+    }
+  }, [completionSeconds, puzzleData]);
+
   // Track the largest keyboard height seen this session and keep reserving it
   useEffect(() => {
     const handleKeyboardEvent = (e: any) => {
@@ -745,8 +771,18 @@ export default function CrosswordScreen() {
             />
             {completionSeconds && (
               <ThemedView style={styles.completionBanner}>
-                <ThemedText style={styles.completionTitle}>Nice work!</ThemedText>
-                <ThemedText style={styles.completionSubtitle}>New puzzle at midnight! (PT)</ThemedText>
+                <View style={styles.completionContent}>
+                  <View style={styles.completionTextContainer}>
+                    <ThemedText style={styles.completionTitle}>Nice work!</ThemedText>
+                    <ThemedText style={styles.completionSubtitle}>New puzzle at midnight! (PT)</ThemedText>
+                  </View>
+                  <Pressable 
+                    style={styles.shareButton}
+                    onPress={handleShareScore}
+                  >
+                    <Ionicons name="paper-plane" size={24} color="#007AFF" />
+                  </Pressable>
+                </View>
               </ThemedView>
             )}
           </ThemedView>
@@ -971,6 +1007,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#d4e9ff',
+  },
+  completionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  completionTextContainer: {
+    flex: 1,
     alignItems: 'center',
   },
   completionTitle: {
@@ -983,6 +1027,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#007AFF',
+  },
+  shareButton: {
+    padding: 8,
+    marginLeft: 12,
   },
   menuRoot: {
     position: 'absolute',
