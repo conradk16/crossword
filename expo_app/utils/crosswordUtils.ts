@@ -199,18 +199,18 @@ export function getNextPositionForEmptyAdvance(
   grid: CrosswordCell[][],
   nextButton: boolean = false,
 ): { row: number; col: number; direction: Direction } | null {
-  // 1) Next empty in current word, after current position
-  const currentIndex = currentWord.cells.findIndex(c => c.row === currentRow && c.col === currentCol);
-  for (let i = currentIndex + 1; i < currentWord.cells.length; i++) {
-    const cellPos = currentWord.cells[i];
-    if (!grid[cellPos.row][cellPos.col].userLetter) {
-      return { row: cellPos.row, col: cellPos.col, direction };
-    }
-  }
-
-  // 2) If no empty after current position, check for empty slots before current position in same word
-  // Skip this step if nextButton is true (user pressed next button, not typing)
+  // Skip steps 1, 2, and 4 if nextButton is true (go straight to next clue)
   if (!nextButton) {
+    // 1) Next empty in current word, after current position
+    const currentIndex = currentWord.cells.findIndex(c => c.row === currentRow && c.col === currentCol);
+    for (let i = currentIndex + 1; i < currentWord.cells.length; i++) {
+      const cellPos = currentWord.cells[i];
+      if (!grid[cellPos.row][cellPos.col].userLetter) {
+        return { row: cellPos.row, col: cellPos.col, direction };
+      }
+    }
+
+    // 2) Check for empty slots before current position in same word
     for (let i = 0; i < currentIndex; i++) {
       const cellPos = currentWord.cells[i];
       if (!grid[cellPos.row][cellPos.col].userLetter) {
@@ -246,9 +246,11 @@ export function getNextPositionForEmptyAdvance(
   }
 
   // 4) Wrap to first empty in same direction
-  const firstEmptySameDir = findFirstEmptySpotInDirection(direction, clues, grid);
-  if (firstEmptySameDir) {
-    return { row: firstEmptySameDir.row, col: firstEmptySameDir.col, direction };
+  if (!nextButton) {
+    const firstEmptySameDir = findFirstEmptySpotInDirection(direction, clues, grid);
+    if (firstEmptySameDir) {
+      return { row: firstEmptySameDir.row, col: firstEmptySameDir.col, direction };
+    }
   }
 
   // 5) Switch to other direction, first empty there
