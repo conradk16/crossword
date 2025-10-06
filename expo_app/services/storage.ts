@@ -5,6 +5,7 @@ export interface StoredPuzzleState {
   letters?: (string | null)[][];
   completionSeconds?: number;
   elapsedSeconds?: number;
+  hasStarted?: boolean;
 }
 
 const STORAGE_KEY_PREFIX = 'puzzleState:';

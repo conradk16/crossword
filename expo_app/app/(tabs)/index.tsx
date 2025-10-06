@@ -53,6 +53,8 @@ export default function CrosswordScreen() {
   const [helpMenuOpen, setHelpMenuOpen] = useState(false);
   const [helpMenuAnchor, setHelpMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isInitialRenderComplete, setIsInitialRenderComplete] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [showReadyModal, setShowReadyModal] = useState(false);
   
 
   // Function to play bell sound when puzzle is completed
@@ -168,6 +170,10 @@ export default function CrosswordScreen() {
           } else if (saved?.elapsedSeconds && saved.elapsedSeconds > 0) {
             restoredElapsedSeconds = saved.elapsedSeconds;
           }
+          
+          if (saved?.hasStarted) {
+            setHasStarted(true);
+          }
         } catch {}
 
         // Keep the ticking ref in sync with restored elapsed seconds
@@ -267,6 +273,10 @@ export default function CrosswordScreen() {
     if (!puzzleData || gridToPersist.length === 0) return;
     const letters = gridToPersist.map(row => row.map(cell => (cell.isBlack ? null : (cell.userLetter || ''))));
     savePuzzleState(puzzleData.date, { letters });
+    // Always persist hasStarted flag
+    if (hasStarted) {
+      savePuzzleState(puzzleData.date, { hasStarted: true });
+    }
     // Always persist in-progress elapsed time
     if (options?.completionSeconds >= 0) {
       savePuzzleState(puzzleData.date, { elapsedSeconds: options.completionSeconds });
@@ -299,7 +309,7 @@ export default function CrosswordScreen() {
         console.log('Failed to sync completion time:', error);
       }
     }
-  }, [puzzleData, token]);
+  }, [puzzleData, token, hasStarted]);
 
   const advanceAfterInput = useCallback((newGrid: CrosswordCell[][], selectedRow: number, selectedCol: number, insertedIntoEmpty: boolean) => {
     if (!gameState.currentWord || !puzzleData) return;
@@ -541,6 +551,17 @@ export default function CrosswordScreen() {
     setShowCompletionModal(false);
   }, []);
 
+  const handleStartPuzzle = useCallback(() => {
+    setHasStarted(true);
+    setShowReadyModal(false);
+    if (puzzleData) {
+      savePuzzleState(puzzleData.date, { hasStarted: true });
+    }
+    // Focus the input after starting
+    setShouldRefocus(true);
+    textInputRef.current?.focus();
+  }, [puzzleData]);
+
   const handleShareScore = useCallback(async () => {
     if (!completionSeconds || !puzzleData) return;
 
@@ -590,7 +611,7 @@ export default function CrosswordScreen() {
 
   // Timer tick + persist effect
   useEffect(() => {
-    if (completionSeconds || isTimerPaused || !puzzleData) {
+    if (completionSeconds || isTimerPaused || !puzzleData || !hasStarted) {
       return;
     }
     const interval = setInterval(() => {
@@ -611,7 +632,7 @@ export default function CrosswordScreen() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [completionSeconds, isTimerPaused, puzzleData]);
+  }, [completionSeconds, isTimerPaused, puzzleData, hasStarted]);
 
   // Hide splash screen and pull up the keyboard after initial render is complete
   useEffect(() => {
@@ -619,11 +640,10 @@ export default function CrosswordScreen() {
       setIsInitialRenderComplete(true);
       // Use requestAnimationFrame to ensure the render is complete
       requestAnimationFrame(async () => {
-        // bring up the keyboard
-        setShouldRefocus(true);
-        textInputRef.current?.focus();
         try {
           await SplashScreen.hideAsync();
+          // Show ready modal if user hasn't started yet
+          setShowReadyModal(!hasStarted);
         } catch (e) {
           console.log('Error hiding splash screen:', e);
         }
@@ -833,6 +853,41 @@ export default function CrosswordScreen() {
         )}
       </View>
       
+      {/* Ready Modal */}
+      <Modal
+        visible={showReadyModal}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={handleStartPuzzle}
+      >
+        <View style={styles.modalOverlay}>
+          {Platform.OS === 'ios' ? (
+            <BlurView intensity={20} style={styles.blurOverlay}>
+              <View style={styles.modalContentWrapper}>
+                <View style={styles.modalContent}>
+                  <ThemedText style={styles.modalTitle}>Ready?</ThemedText>
+                  <Pressable style={styles.startButton} onPress={handleStartPuzzle}>
+                    <ThemedText style={styles.startButtonText}>Go</ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+            </BlurView>
+          ) : (
+            <View style={styles.androidOverlay}>
+              <View style={styles.modalContentWrapper}>
+                <View style={styles.modalContent}>
+                  <ThemedText style={styles.modalTitle}>Ready?</ThemedText>
+                  <Pressable style={styles.startButton} onPress={handleStartPuzzle}>
+                    <ThemedText style={styles.startButtonText}>Go</ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
+
       {/* Completion Modal */}
       <Modal
         visible={showCompletionModal}
@@ -1075,5 +1130,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E5EA',
     marginVertical: 2,
   },
-  
+  startButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  startButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
 });
