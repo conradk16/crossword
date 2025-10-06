@@ -1056,7 +1056,7 @@ const styles = StyleSheet.create({
   },
   completionBanner: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     backgroundColor: '#d4e9ff',
   },
   completionContent: {
