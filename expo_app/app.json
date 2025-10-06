@@ -2,7 +2,7 @@
   "expo": {
     "name": "Crossword",
     "slug": "expo_app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "crosswordexpoapp",
@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.conradscrossword",
+      "associatedDomains": ["applinks:conradscrossword.com"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -21,7 +22,21 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.conradscrossword",
-      "versionCode": 2
+      "versionCode": 2,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "conradscrossword.com",
+              "pathPrefix": "/share"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       "expo-router",

@@ -567,16 +567,12 @@ export default function CrosswordScreen() {
 
     const formattedTime = formatTime(completionSeconds);
     
-    // iOS App Store link
-    const iosAppStoreUrl = 'https://apps.apple.com/app/id6753033018';
+    // Universal link that works for both iOS and Android
+    // If user has the app, it will open automatically
+    // If not, they'll be redirected to the appropriate store
+    const shareUrl = 'https://conradscrossword.com/share';
     
-    // Android Play Store link
-    const androidPlayStoreUrl = 'https://play.google.com/store/apps/details?id=com.conradscrossword';
-    
-    // Use the appropriate link for the current platform
-    const appStoreLink = Platform.OS === 'ios' ? iosAppStoreUrl : androidPlayStoreUrl;
-    
-    const message = `I completed Conrad's Crossword in ${formattedTime}!\n\n${appStoreLink}`;
+    const message = `I completed Conrad's Crossword in ${formattedTime}!\n\n${shareUrl}`;
 
     try {
       await Share.share({
