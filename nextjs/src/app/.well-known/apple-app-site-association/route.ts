@@ -6,7 +6,7 @@ export async function GET() {
       apps: [],
       details: [
         {
-          appID: 'ZNUR9L7D9D.com.conradscrossword',
+          appID: '48NP6Y8GUR.com.conradscrossword',
           paths: ['/share', '/share/*']
         }
       ]
