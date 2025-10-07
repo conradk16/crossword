@@ -9,7 +9,6 @@ import json
 import random
 from datetime import datetime, timedelta, date
 import argparse
-from pathlib import Path
 
 import requests
 
@@ -21,9 +20,6 @@ try:
 except Exception:
     # If truststore is unavailable for any reason, continue; requests will fall back to certifi
     pass
-
-
-OUTPUT_FILE = os.path.join(os.path.dirname(__file__), 'boards.jsonl')
 
 
 class TrieNode:
@@ -320,23 +316,14 @@ def compute_entries(rows: int, cols: int, black_squares: Set[Tuple[int, int]], f
     return entries
 
 
-def get_config(tier: str) -> Tuple[str, str]:
-    if tier == 'prod':
-        admin_key = os.environ.get('CROSSWORD_ADMIN_KEY_PROD')
-        base_url = os.environ.get('CROSSWORD_ADMIN_URL_PROD')
-    elif tier == 'dev':
-        admin_key = os.environ.get('CROSSWORD_ADMIN_KEY_DEV')
-        base_url = os.environ.get('CROSSWORD_ADMIN_URL_DEV')
-    elif tier == 'local':
-        admin_key = os.environ.get('CROSSWORD_ADMIN_KEY_LOCAL')
-        base_url = os.environ.get('CROSSWORD_ADMIN_URL_LOCAL')
-    else:
-        raise RuntimeError("Invalid tier; expected one of: local, dev, prod")
+def get_config() -> Tuple[str, str]:
+    admin_key = os.environ.get('CROSSWORD_ADMIN_KEY_LOCAL')
+    base_url = os.environ.get('CROSSWORD_ADMIN_URL_LOCAL')
 
     if not admin_key:
-        raise RuntimeError(f"Missing admin key environment variable for tier {tier}")
+        raise RuntimeError("Missing CROSSWORD_ADMIN_KEY_LOCAL environment variable")
     if not base_url:
-        raise RuntimeError(f"Missing crossword admin url variable for tier {tier}")
+        raise RuntimeError("Missing CROSSWORD_ADMIN_URL_LOCAL environment variable")
 
     return admin_key, base_url.rstrip('/')
 
@@ -354,7 +341,16 @@ def http_get_word_history(base_url: str, admin_key: str, mm_dd_yyyy: str, timeou
     return resp.json()
 
 
-# Note: Uploading is now handled by `upload_boards.py`
+def http_post_bulk_boards(base_url: str, admin_key: str, ndjson_text: str, timeout: int = 60) -> Dict[str, object]:
+    url = f"{base_url}/api/admin/boards/bulk_upload"
+    headers = {
+        'Content-Type': 'text/plain',
+        'x-admin-secret': admin_key,
+    }
+    resp = requests.post(url, data=ndjson_text.encode('utf-8'), headers=headers, timeout=timeout)
+    if resp.status_code >= 400:
+        raise RuntimeError(f"Bulk upload failed: {resp.status_code} {resp.text}")
+    return resp.json()
 
 
 def load_base_wordlist(base_dir: str) -> Set[str]:
@@ -409,25 +405,18 @@ def build_final_grid(rows: int, cols: int, blacks: Set[Tuple[int, int]], grid: L
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate boards from templates and write NDJSON to file (no clues).')
-    parser.add_argument('start_date', help='Start date inclusive, in mm-dd-yyyy')
-    parser.add_argument('end_date', help='End date inclusive, in mm-dd-yyyy')
-    parser.add_argument('tier', choices=['local', 'dev', 'prod'], help='Environment tier')
+    parser = argparse.ArgumentParser(description='Generate board for a date and upload to local environment (interactive).')
+    parser.add_argument('date', help='Date to generate board for, in mm-dd-yyyy')
     args = parser.parse_args()
 
     try:
-        start_dt = datetime.strptime(args.start_date, '%m-%d-%Y').date()
-        end_dt = datetime.strptime(args.end_date, '%m-%d-%Y').date()
+        target_dt = datetime.strptime(args.date, '%m-%d-%Y').date()
     except ValueError:
-        print('Invalid date format. Use mm-dd-yyyy for start_date and end_date.')
-        sys.exit(1)
-
-    if end_dt < start_dt:
-        print('end_date must be on or after start_date')
+        print('Invalid date format. Use mm-dd-yyyy for date.')
         sys.exit(1)
 
     try:
-        admin_key, base_url = get_config(args.tier)
+        admin_key, base_url = get_config()
     except Exception as e:
         print(str(e))
         sys.exit(1)
@@ -445,12 +434,20 @@ def main():
     base_words = load_base_wordlist(base_dir)
     exclusions = load_exclusions(base_dir)
 
-    # Build initial history for the 100 days prior to start date (inclusive of start-100, exclusive of start)
-    history_words_by_date: Dict[str, Set[str]] = {}
+    # Get weekday and check if we have a template
+    weekday_name = target_dt.strftime('%A')
+    if weekday_name not in template_by_day:
+        print(f"No template available for {weekday_name}")
+        sys.exit(1)
+
+    rows, cols, blacks = template_by_day[weekday_name]
+
+    # Build history for the 100 days prior to target date (inclusive of target-100, exclusive of target)
+    print(f"Loading word history for the 100 days prior to {iso(target_dt)}...")
     previously_used_words: Set[str] = set()
 
     for i in range(100, 0, -1):
-        d = start_dt - timedelta(days=i)
+        d = target_dt - timedelta(days=i)
         mmdd = mmddyyyy(d)
         try:
             payload = http_get_word_history(base_url, admin_key, mmdd)
@@ -462,117 +459,79 @@ def main():
         words_arr = payload.get('words') if isinstance(payload, dict) else None
         if not isinstance(words_arr, list):
             continue
-        day_words: Set[str] = set()
         for wobj in words_arr:
             if not isinstance(wobj, dict):
                 continue
             w = wobj.get('word')
             if isinstance(w, str) and w:
-                day_words.add(w.lower())
-        if day_words:
-            history_words_by_date[iso(d)] = day_words
-            previously_used_words.update(day_words)
+                previously_used_words.add(w.lower())
 
-    # Prepare to generate per-day and stream NDJSON to file
-    total_written = 0
-    # Ensure directory exists
-    Path(os.path.dirname(OUTPUT_FILE)).mkdir(parents=True, exist_ok=True)
-    try:
-        out_f = open(OUTPUT_FILE, 'w', encoding='utf-8')
-    except Exception as e:
-        print(f"Failed to open output file {OUTPUT_FILE}: {e}")
+    # Build usable word set
+    usable_words = base_words.difference(exclusions).difference(previously_used_words)
+    if not usable_words:
+        print(f"No usable words available for {iso(target_dt)}")
         sys.exit(1)
 
-    cur = start_dt
-    while cur <= end_dt:
-        weekday_name = cur.strftime('%A')
-        if weekday_name not in template_by_day:
-            print(f"Skipping {iso(cur)} ({weekday_name}) - no template")
-            # Roll window: remove words from cur-100 for next day
-            drop_day = cur - timedelta(days=100)
-            drop_words = history_words_by_date.get(iso(drop_day))
-            if drop_words:
-                previously_used_words.difference_update(drop_words)
-            cur += timedelta(days=1)
-            continue
+    max_len = max(rows, cols)
+    print(f"Building word trie for {rows}x{cols} grid...")
+    trie = build_trie_from_words(usable_words, max_length=max_len, min_length=2)
 
-        rows, cols, blacks = template_by_day[weekday_name]
-
-        # Build usable word set for today
-        usable_words = base_words.difference(exclusions).difference(previously_used_words)
-        if not usable_words:
-            print(f"No usable words available for {iso(cur)}; skipping")
-            # Roll window for next day
-            drop_day = cur - timedelta(days=100)
-            drop_words = history_words_by_date.get(iso(drop_day))
-            if drop_words:
-                previously_used_words.difference_update(drop_words)
-            cur += timedelta(days=1)
-            continue
-
-        max_len = max(rows, cols)
-        trie = build_trie_from_words(usable_words, max_length=max_len, min_length=2)
+    # Interactive generation loop
+    attempt_num = 0
+    while True:
+        print(f"\n{'='*60}")
+        print(f"Generating board for {iso(target_dt)} ({weekday_name}) - Attempt {attempt_num + 1}")
+        print(f"{'='*60}")
 
         grid: List[List[str]] = []
         solved = False
-        for attempt in range(20):
-            random.seed((hash(iso(cur)) ^ attempt) & 0xFFFFFFFF)
+        for inner_attempt in range(20):
+            random.seed((hash(iso(target_dt)) ^ attempt_num ^ inner_attempt) & 0xFFFFFFFF)
             grid = fill_grid(trie, rows, cols, blacks)
             if grid:
                 solved = True
                 break
+
         if not solved:
-            print(f"Failed to solve grid for {iso(cur)}; skipping")
-            # Roll window for next day
-            drop_day = cur - timedelta(days=100)
-            drop_words = history_words_by_date.get(iso(drop_day))
-            if drop_words:
-                previously_used_words.difference_update(drop_words)
-            cur += timedelta(days=1)
+            print(f"Failed to solve grid after 20 attempts")
+            attempt_num += 1
             continue
 
         final_grid = build_final_grid(rows, cols, blacks, grid)
 
-        # Compute words used today (lowercase)
+        # Compute and display words used
         entries = compute_entries(rows, cols, blacks, final_grid)
-        today_words: Set[str] = set()
+        print(f"\nGenerated board with {len(entries)} entries:")
         for e in entries:
-            ans = e.get('answer')
-            if isinstance(ans, str) and ans:
-                today_words.add(ans.lower())
+            print(f"  {e['direction']:>6} ({e['row']},{e['col']}): {e['answer']}")
 
-        # Add NDJSON line for later upload
+        # Upload the board
         rec = {
-            'date': iso(cur),
+            'date': iso(target_dt),
             'board': final_grid,
         }
+        ndjson_text = json.dumps(rec, ensure_ascii=False) + '\n'
+
+        print(f"\nUploading board to local environment...")
         try:
-            out_f.write(json.dumps(rec, ensure_ascii=False) + '\n')
-            total_written += 1
-            print(f"Generated {iso(cur)}")
+            result = http_post_bulk_boards(base_url, admin_key, ndjson_text)
+            print(f"Upload successful: {result}")
         except Exception as e:
-            print(f"Failed writing record for {iso(cur)}: {e}")
+            print(f"Upload failed: {e}")
+            sys.exit(1)
 
-        # Update history and rolling window for next day
-        history_words_by_date[iso(cur)] = today_words
-        previously_used_words.update(today_words)
-        drop_day = cur - timedelta(days=100)
-        drop_words = history_words_by_date.get(iso(drop_day))
-        if drop_words:
-            previously_used_words.difference_update(drop_words)
-
-        cur += timedelta(days=1)
-
-    try:
-        out_f.close()
-    except Exception:
-        pass
-
-    if total_written == 0:
-        print('No boards generated. Nothing written.')
-        return
-
-    print(f"Done. Wrote {total_written} board record(s) to {OUTPUT_FILE}")
+        # Ask user if satisfied
+        while True:
+            response = input("\nAre you satisfied with this board? (y/n): ").strip().lower()
+            if response in ['y', 'yes']:
+                print("\nDone! Board accepted.")
+                return
+            elif response in ['n', 'no']:
+                print("\nRegenerating...")
+                attempt_num += 1
+                break
+            else:
+                print("Please enter 'y' or 'n'")
 
 
 if __name__ == '__main__':

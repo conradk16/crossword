@@ -1,38 +1,38 @@
 #!/usr/bin/env python3
 """
-Generate clues for a subset of entries specified in clues_to_overwrite.csv and write to JSONL.
+Generate clues for a subset of entries specified in clues_to_overwrite.csv and upload to local database.
 
-This script generates clue records and writes them (NDJSON) to
-`partial_board_clues.jsonl` in this directory. Use the companion script
-`upload_partial_board_clues.py` to upload the generated records.
+This script generates clue records and uploads them directly to the local database.
 
 Usage:
-  python generate_partial_board_clues.py <local|dev|prod> [--file FILE]
+  python generate_partial_board_clues.py <date> [--file FILE]
 
 The input file must be a CSV with header:
-  date, row, col, direction, optional_clue
+  row, col, direction, optional_clue
 
 Where:
-- date: MM-DD-YYYY
 - row: row index (integer)
 - col: column index (integer)
 - direction: direction string: "across" or "down"
 - optional_clue: optional free-text clue; if empty, a clue will be generated
 
 Examples:
-  09-25-2025, 2, 0, across,
-  09-25-2025, 0, 0, down, yummy yogurt
+  python generate_partial_board_clues.py 09-25-2025
+  python generate_partial_board_clues.py 09-25-2025 --file my_clues.csv
+
+CSV example:
+  2, 0, across,
+  0, 0, down, yummy yogurt
 
 Notes:
+- Date must be in MM-DD-YYYY format.
 - Direction is "across" or "down" (case-insensitive).
 - If optional_clue is non-empty, it will be used as-is; otherwise a clue will be
   generated with OpenAI via utils.generate_clues_for_words using the suffix
   "We'll just do one word, actually".
 
-Environment variables (per environment):
-  - CROSSWORD_ADMIN_URL_LOCAL,  CROSSWORD_ADMIN_KEY_LOCAL
-  - CROSSWORD_ADMIN_URL_DEV,    CROSSWORD_ADMIN_KEY_DEV
-  - CROSSWORD_ADMIN_URL_PROD,   CROSSWORD_ADMIN_KEY_PROD
+Environment variables:
+  - CROSSWORD_ADMIN_URL_LOCAL, CROSSWORD_ADMIN_KEY_LOCAL
 
 Also requires:
   - OPENAI_API_KEY (and optionally OPENAI_CLUE_MODEL) for clue generation
@@ -54,12 +54,18 @@ import requests
 
 from utils import generate_clues_for_words
 
+# Use macOS system trust store so Python requests trusts the same CAs as curl
+try:
+    import truststore  # type: ignore
+
+    truststore.inject_into_ssl()
+except Exception:
+    # If truststore is unavailable for any reason, continue; requests will fall back to certifi
+    pass
+
 
 DATE_REGEX = re.compile(r"^\d{2}-\d{2}-\d{4}$")
 LOC_REGEX = re.compile(r"^\(\s*(\d+)\s*,\s*(\d+)\s*\)$")  # unused; kept for clarity in docs
-
-# Output file (NDJSON) written by this script
-OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "partial_board_clues.jsonl")
 
 
 def validate_date(date_str: str) -> None:
@@ -79,12 +85,10 @@ def to_iso(d: dt.date) -> str:
     return d.isoformat()
 
 
-def get_config(env: str) -> tuple[str, str]:
-    env_upper = {"local": "LOCAL", "dev": "DEV", "prod": "PROD"}.get(env)
-    if env_upper is None:
-        raise RuntimeError("Invalid --env; expected one of: local, dev, prod")
-    url_var = f"CROSSWORD_ADMIN_URL_{env_upper}"
-    key_var = f"CROSSWORD_ADMIN_KEY_{env_upper}"
+def get_config() -> tuple[str, str]:
+    """Get local environment configuration."""
+    url_var = "CROSSWORD_ADMIN_URL_LOCAL"
+    key_var = "CROSSWORD_ADMIN_KEY_LOCAL"
     base_url = os.environ.get(url_var)
     admin_key = os.environ.get(key_var)
     if not base_url:
@@ -105,7 +109,18 @@ def http_get_word_locs(base_url: str, admin_key: str, mmddyyyy: str, timeout: in
     return resp.json()
 
 
-# Note: Uploading is now handled by `upload_partial_board_clues.py`
+def http_post_bulk_clues(base_url: str, admin_key: str, ndjson_text: str, timeout: int = 60) -> Dict[str, Any]:
+    """Upload clues in bulk via the admin API."""
+    url = f"{base_url}/api/admin/clues/bulk_upload"
+    headers = {
+        "x-admin-secret": admin_key,
+        "Content-Type": "text/plain",
+        "Accept": "application/json",
+    }
+    resp = requests.post(url, data=ndjson_text.encode("utf-8"), headers=headers, timeout=timeout)
+    if resp.status_code >= 400:
+        raise RuntimeError(f"POST {url} failed: {resp.status_code} {resp.text}")
+    return resp.json()
 
 
 @dataclass
@@ -125,15 +140,20 @@ class InputRow:
     provided_clue: Optional[str] = None
 
 
-def parse_input_file(path: str) -> Dict[str, List[InputRow]]:
-    by_date: Dict[str, List[InputRow]] = {}
+def parse_input_file(path: str, date_str: str) -> List[InputRow]:
+    """Parse the CSV file and return a list of InputRow items for the given date."""
+    validate_date(date_str)
+    d = parse_mmddyyyy(date_str)
+    iso_date = to_iso(d)
+    
+    items: List[InputRow] = []
     with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(
             f,
             skipinitialspace=True,
             escapechar="\\",
         )
-        expected = ["date", "row", "col", "direction", "optional_clue"]
+        expected = ["row", "col", "direction", "optional_clue"]
         for req in expected:
             if req not in (reader.fieldnames or []):
                 raise RuntimeError(
@@ -141,22 +161,12 @@ def parse_input_file(path: str) -> Dict[str, List[InputRow]]:
                 )
 
         for row in reader:
-            raw_date = (row.get("date") or "").strip()
             row_str = (row.get("row") or "").strip()
             col_str = (row.get("col") or "").strip()
             dir_str = (row.get("direction") or "").strip().lower()
             raw_clue = row.get("optional_clue")
             if raw_clue is not None:
                 raw_clue = raw_clue.strip()
-
-            if not raw_date:
-                print("Skipping row with empty date")
-                continue
-            try:
-                validate_date(raw_date)
-            except Exception as e:
-                print(f"Skipping row with invalid date '{raw_date}': {e}")
-                continue
 
             if dir_str not in ("across", "down"):
                 print(f"Skipping row with invalid direction '{dir_str}' (use 'across' or 'down')")
@@ -169,17 +179,16 @@ def parse_input_file(path: str) -> Dict[str, List[InputRow]]:
                 print(f"Skipping row with non-integer row/col values row='{row_str}', col='{col_str}'")
                 continue
 
-            d = parse_mmddyyyy(raw_date)
             ir = InputRow(
-                mmddyyyy=raw_date,
-                iso_date=to_iso(d),
+                mmddyyyy=date_str,
+                iso_date=iso_date,
                 direction=dir_str,
                 file_col=file_col,
                 file_row=file_row,
                 provided_clue=(raw_clue if raw_clue else None),
             )
-            by_date.setdefault(raw_date, []).append(ir)
-    return by_date
+            items.append(ir)
+    return items
 
 
 def build_loc_index(words_payload: Dict[str, Any]) -> Dict[Tuple[str, int, int], Dict[str, Any]]:
@@ -236,117 +245,110 @@ def build_ndjson_for_items(items: List[InputRow], word_to_clue: Dict[str, str]) 
 
 
 def main(argv: List[str]) -> int:
-    parser = argparse.ArgumentParser(description="Generate clues for specific entries listed in a file and write NDJSON to file")
-    parser.add_argument("env", choices=["local", "dev", "prod"], help="Target environment")
+    parser = argparse.ArgumentParser(description="Generate clues for specific entries listed in a file and upload to local database")
+    parser.add_argument("date", help="Date in MM-DD-YYYY format")
     parser.add_argument("--file", default="clues_to_overwrite.csv", help="Path to the input CSV file")
     args = parser.parse_args(argv)
 
     try:
-        base_url, admin_key = get_config(args.env)
+        base_url, admin_key = get_config()
     except Exception as e:
         print(str(e), file=sys.stderr)
         return 2
 
+    # Validate date format
     try:
-        by_date = parse_input_file(args.file)
+        validate_date(args.date)
+        mmddyyyy = args.date
+    except Exception as e:
+        print(f"Invalid date format: {e}", file=sys.stderr)
+        return 2
+
+    # Parse input file
+    try:
+        items = parse_input_file(args.file, mmddyyyy)
     except Exception as e:
         print(f"Failed to parse input file: {e}", file=sys.stderr)
         return 2
 
-    if not by_date:
+    if not items:
         print("No valid rows found in input file; nothing to do.")
         return 0
 
-    total_dates = 0
-    total_written_dates = 0
-    total_written_records = 0
+    print(f"Processing {mmddyyyy} with {len(items)} item(s) ...")
 
-    # Open output file in write mode (overwrite existing)
+    # Fetch word locations for the date to resolve coordinates and words
     try:
-        out_f = open(OUTPUT_FILE, "w", encoding="utf-8")
+        payload = http_get_word_locs(base_url, admin_key, mmddyyyy)
     except Exception as e:
-        print(f"Failed to open output file {OUTPUT_FILE}: {e}", file=sys.stderr)
-        return 2
+        print(f"Failed to load word locations for {mmddyyyy}: {e}", file=sys.stderr)
+        return 1
 
-    for mmddyyyy, items in by_date.items():
-        total_dates += 1
-        print(f"Processing {mmddyyyy} ...")
+    if payload is None:
+        print(f"No puzzle exists for {mmddyyyy}.")
+        return 1
 
-        # Fetch word locations for the date to resolve coordinates and words
+    idx = build_loc_index(payload)
+
+    # Resolve each item to row0/col0/word
+    unresolved: List[InputRow] = []
+    for it in items:
+        ok = resolve_row_col_for_item(it, idx)
+        if not ok:
+            unresolved.append(it)
+    if unresolved:
+        for it in unresolved:
+            print(
+                f"  Could not resolve location {it.direction} @ file (col,row)=({it.file_col},{it.file_row}); skipping this item.",
+                file=sys.stderr,
+            )
+        # Filter out unresolved before proceeding
+        items = [it for it in items if it not in unresolved]
+
+    if not items:
+        print(f"No resolvable items for {mmddyyyy}.")
+        return 1
+
+    # Collect words needing generation
+    words_to_generate: List[str] = []
+    for it in items:
+        if isinstance(it.provided_clue, str) and it.provided_clue.strip():
+            continue
+        if isinstance(it.word, str) and it.word.strip():
+            words_to_generate.append(it.word)
+
+    word_to_clue: Dict[str, str] = {}
+    if words_to_generate:
         try:
-            payload = http_get_word_locs(base_url, admin_key, mmddyyyy)
+            word_to_clue = generate_clues_for_words(
+                words_to_generate,
+                prompt_suffix="We'll just do one word, actually",
+            )
         except Exception as e:
-            print(f"  Failed to load word locations for {mmddyyyy}: {e}", file=sys.stderr)
-            continue
+            print(f"Clue generation failed: {e}", file=sys.stderr)
+            # We can still proceed for those with provided clues
 
-        if payload is None:
-            print(f"  No puzzle exists for {mmddyyyy}; skipping.")
-            continue
+    ndjson_text = build_ndjson_for_items(items, word_to_clue)
+    if not ndjson_text.strip():
+        print(f"No clue records generated.")
+        return 1
 
-        idx = build_loc_index(payload)
+    lines = ndjson_text.strip().splitlines()
+    num_records = len(lines)
+    print(f"Generated {num_records} clue record(s)")
 
-        # Resolve each item to row0/col0/word
-        unresolved: List[InputRow] = []
-        for it in items:
-            ok = resolve_row_col_for_item(it, idx)
-            if not ok:
-                unresolved.append(it)
-        if unresolved:
-            for it in unresolved:
-                print(
-                    f"  Could not resolve location {it.direction} @ file (col,row)=({it.file_col},{it.file_row}); skipping this item.",
-                    file=sys.stderr,
-                )
-            # Filter out unresolved before proceeding
-            items = [it for it in items if it not in unresolved]
-
-        if not items:
-            print(f"  No resolvable items for {mmddyyyy}; skipping.")
-            continue
-
-        # Collect words needing generation
-        words_to_generate: List[str] = []
-        for it in items:
-            if isinstance(it.provided_clue, str) and it.provided_clue.strip():
-                continue
-            if isinstance(it.word, str) and it.word.strip():
-                words_to_generate.append(it.word)
-
-        word_to_clue: Dict[str, str] = {}
-        if words_to_generate:
-            try:
-                word_to_clue = generate_clues_for_words(
-                    words_to_generate,
-                    prompt_suffix="We'll just do one word, actually",
-                )
-            except Exception as e:
-                print(f"  Clue generation failed for {mmddyyyy}: {e}", file=sys.stderr)
-                # We can still proceed for those with provided clues
-
-        ndjson_text = build_ndjson_for_items(items, word_to_clue)
-        if not ndjson_text.strip():
-            print(f"  No clue records to write for {mmddyyyy}; skipping.")
-            continue
-
-        try:
-            out_f.write(ndjson_text)
-        except Exception as e:
-            print(f"  Failed writing records for {mmddyyyy}: {e}", file=sys.stderr)
-            continue
-
-        num_records = len(ndjson_text.strip().splitlines())
-        total_written_dates += 1
-        total_written_records += num_records
-        print(f"  Wrote {num_records} clue record(s)")
+    # Upload the generated clues to the database
+    print(f"\nUploading {num_records} clue(s) to database ...")
 
     try:
-        out_f.close()
-    except Exception:
-        pass
+        result = http_post_bulk_clues(base_url, admin_key, ndjson_text)
+    except Exception as e:
+        print(f"Bulk upload failed: {e}", file=sys.stderr)
+        return 1
 
-    print(
-        f"Done. Processed {total_dates} date(s). Wrote {total_written_records} record(s) across {total_written_dates} date(s) to {OUTPUT_FILE}"
-    )
+    updated_dates = int(result.get("updated_dates", 0))
+    updated_clues = int(result.get("updated_clues", 0))
+    print(f"Upload complete: updated_dates={updated_dates}, updated_clues={updated_clues}")
     return 0
 
 
