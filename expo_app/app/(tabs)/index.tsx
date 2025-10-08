@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { StyleSheet, ScrollView, Platform, TextInput, Dimensions, View, Pressable, Keyboard, useWindowDimensions, Modal, AppState, Share } from 'react-native';
+import { StyleSheet, ScrollView, Platform, TextInput, Dimensions, View, Pressable, Keyboard, useWindowDimensions, Modal, AppState, Share, Linking, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { Audio, InterruptionModeAndroid } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { loadPuzzleState, savePuzzleState, saveElapsedSeconds } from '@/services/storage';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { useAuth } from '@/services/AuthContext';
@@ -133,7 +134,31 @@ export default function CrosswordScreen() {
         return controller;
       });
 
-      const response = await fetch(withBaseUrl('/api/puzzles/daily'), { signal: controller.signal });
+      // Get app version and add it to the request if available
+      const appVersion = Constants.expoConfig?.version;
+      const url = appVersion 
+        ? withBaseUrl(`/api/puzzles/daily?version=${encodeURIComponent(appVersion)}`)
+        : withBaseUrl('/api/puzzles/daily');
+      
+      const response = await fetch(url, { signal: controller.signal });
+      
+      // Check if app update is required
+      if (response.status === 426) {
+        setLoading(false);
+        Alert.alert(
+          "Conrad's Crossword has a new update!",
+          '',
+          [
+            {
+              text: 'Update Now',
+              onPress: handleOpenAppStore,
+            },
+          ],
+          { cancelable: false }
+        );
+        return;
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch puzzle');
       }
@@ -609,6 +634,19 @@ export default function CrosswordScreen() {
       console.log('Error sharing score:', error);
     }
   }, [completionSeconds, puzzleData]);
+
+  const handleOpenAppStore = useCallback(() => {
+    const appStoreUrl = Platform.select({
+      ios: 'https://apps.apple.com/app/id6753033018',
+      android: 'https://play.google.com/store/apps/details?id=com.conradscrossword',
+    });
+
+    if (appStoreUrl) {
+      Linking.openURL(appStoreUrl).catch((err) => {
+        console.error('Error opening app store:', err);
+      });
+    }
+  }, []);
 
   // Track the largest keyboard height seen this session and keep reserving it
   useEffect(() => {
