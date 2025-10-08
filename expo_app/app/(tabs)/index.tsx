@@ -55,6 +55,8 @@ export default function CrosswordScreen() {
   const isInitialRenderComplete = useRef(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showReadyModal, setShowReadyModal] = useState(false);
+  const hasStartedFromStorageRef = useRef<boolean | null>(null);
+  const wasCompletedFromStorageRef = useRef<boolean>(false);
   
 
   // Function to play bell sound when puzzle is completed
@@ -151,6 +153,7 @@ export default function CrosswordScreen() {
         // Try to hydrate with saved state for this date
         let hydratedGrid = baseGrid;
         let restoredElapsedSeconds = 0;
+        let wasCompleted = false;
         try {
           const saved = await loadPuzzleState(data.date);
           if (saved && Array.isArray(saved.letters)) {
@@ -167,6 +170,7 @@ export default function CrosswordScreen() {
           if (saved?.completionSeconds && saved.completionSeconds > 0) {
             setCompletionSeconds(saved.completionSeconds);
             restoredElapsedSeconds = saved.completionSeconds;
+            wasCompleted = true;
           } else if (saved?.elapsedSeconds && saved.elapsedSeconds > 0) {
             restoredElapsedSeconds = saved.elapsedSeconds;
           }
@@ -179,6 +183,10 @@ export default function CrosswordScreen() {
 
         // update the useState from the var
         setHasStarted(hasStartedVar);
+        
+        // Store in refs for splash screen effect to avoid race condition
+        hasStartedFromStorageRef.current = hasStartedVar;
+        wasCompletedFromStorageRef.current = wasCompleted;
 
         const updateGameState = () => {
           // Keep the ticking ref in sync with restored elapsed seconds
@@ -205,9 +213,11 @@ export default function CrosswordScreen() {
           updateGridHighlighting(hydratedGrid, start.row, start.col, initialWord);
         };
 
-        // new day, haven't closed app, so show the ready modal
-        // Defer game state updates if modal is showing, otherwise update immediately
-        if (!hasStartedVar && isInitialRenderComplete.current) {
+        // Show ready modal if puzzle hasn't been started and isn't completed
+        // Only show here if this is a new day detected while app is open (not initial load)
+        // Initial load is handled by splash screen effect to avoid blocking
+        const shouldShowModal = !hasStartedVar && !wasCompleted && isInitialRenderComplete.current;
+        if (shouldShowModal) {
           setShowReadyModal(true);
           requestAnimationFrame(() => {
             setTimeout(updateGameState, 150);
@@ -655,8 +665,11 @@ export default function CrosswordScreen() {
       requestAnimationFrame(async () => {
         try {
           await SplashScreen.hideAsync();
-          // Show ready modal if user hasn't started yet
-          setShowReadyModal(!hasStarted);
+          // After splash is hidden, check if we should show the ready modal
+          // Use refs to avoid race condition with React state
+          if (hasStartedFromStorageRef.current === false && !wasCompletedFromStorageRef.current) {
+            setShowReadyModal(true);
+          }
         } catch (e) {
           console.log('Error hiding splash screen:', e);
         }
