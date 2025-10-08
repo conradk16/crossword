@@ -4,6 +4,12 @@ import { query } from '@/lib/db';
 // Compute Pacific date on the DB side to stay consistent with completions/leaderboard
 const PACIFIC_TODAY_DATE_SQL = `(now() AT TIME ZONE 'America/Los_Angeles')::date`;
 
+// Valid app versions - add new versions here as you release them
+// Not providing a version is also accepted (for backward compatibility)
+const VALID_APP_VERSIONS = new Set([
+  '1.1.1',
+]);
+
 type DbPuzzleData = {
   grid: (string | null)[][];
   clues: Array<{
@@ -15,8 +21,25 @@ type DbPuzzleData = {
   }>;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Extract app version from query parameters
+    const { searchParams } = new URL(request.url);
+    const appVersion = searchParams.get('version');
+    
+    // Check if app version is valid
+    // No version provided is accepted (backward compatibility / grandfathered in)
+    if (appVersion && !VALID_APP_VERSIONS.has(appVersion)) {
+      return NextResponse.json(
+        { 
+          error: 'APP_UPDATE_REQUIRED',
+          message: 'Please update your app to continue playing',
+          currentVersion: appVersion
+        },
+        { status: 426 } // 426 Upgrade Required
+      );
+    }
+    
     const { rows } = await query<{ date: string; data: DbPuzzleData }>(
       `SELECT puzzle_date::text AS date, data
        FROM puzzles
