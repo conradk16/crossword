@@ -3,6 +3,7 @@
 To run the development server:
 
 ```bash
+nvm use node
 npm run dev
 ```
 

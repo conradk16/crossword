@@ -24,11 +24,11 @@ Authentication
     Fallback for secrets: CROSSWORD_ADMIN_KEY
 
 Usage
-  python promote_to_tier.py <tier> <start_yyyy_mm_dd> <end_yyyy_mm_dd> [--src-base-url URL] [--dry-run]
+  python promote_to_tier.py <tier> <start_mm_dd_yyyy> <end_mm_dd_yyyy> [--src-base-url URL] [--dry-run]
 
 Examples
-  python promote_to_tier.py dev 2025-10-01 2025-10-07
-  python promote_to_tier.py prod 2025-10-01 2025-10-01 --dry-run
+  python promote_to_tier.py dev 10-01-2025 10-07-2025
+  python promote_to_tier.py prod 10-01-2025 10-01-2025 --dry-run
 """
 
 from __future__ import annotations
@@ -84,8 +84,8 @@ class PuzzleData(TypedDict):
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Promote local puzzles to a target tier.")
     parser.add_argument("tier", choices=["dev", "prod"], help="Target tier to promote to")
-    parser.add_argument("start_date", help="Start date (YYYY-MM-DD)")
-    parser.add_argument("end_date", help="End date (YYYY-MM-DD)")
+    parser.add_argument("start_date", help="Start date (MM-DD-YYYY)")
+    parser.add_argument("end_date", help="End date (MM-DD-YYYY)")
     parser.add_argument("--src-base-url", default=DEFAULT_SOURCE_BASE_URL, help="Source base URL (default: %(default)s)")
     parser.add_argument("--src-admin-secret", default=(env_admin_key("CROSSWORD_ADMIN_KEY_LOCAL") or os.environ.get("CROSSWORD_SOURCE_ADMIN_KEY")), help="Admin secret for source (env CROSSWORD_ADMIN_KEY_LOCAL or CROSSWORD_SOURCE_ADMIN_KEY or CROSSWORD_ADMIN_KEY)")
     parser.add_argument("--dest-admin-secret", default=None, help="Admin secret for destination (env CROSSWORD_ADMIN_KEY_DEV/PROD or CROSSWORD_DEST_ADMIN_KEY or CROSSWORD_ADMIN_KEY)")
@@ -114,9 +114,9 @@ def require_admin_secret(src_secret: Optional[str], dest_secret: Optional[str], 
 
 def parse_ymd(date_str: str) -> dt.date:
     try:
-        return dt.date.fromisoformat(date_str)
+        return dt.datetime.strptime(date_str, "%m-%d-%Y").date()
     except ValueError as exc:
-        raise SystemExit(f"Invalid date '{date_str}'. Use YYYY-MM-DD.") from exc
+        raise SystemExit(f"Invalid date '{date_str}'. Use MM-DD-YYYY.") from exc
 
 
 def date_range_inclusive(start_date: dt.date, end_date: dt.date) -> Iterable[dt.date]:
