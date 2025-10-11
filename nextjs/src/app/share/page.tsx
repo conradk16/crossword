@@ -6,7 +6,7 @@ export const metadata = {
     description: 'Daily puzzles',
     openGraph: {
         images: [
-            { url: "https://conradscrossword.com/icon.svg" }
+            { url: "https://conradscrossword.com/icon.png" }
         ]
     }
 }
