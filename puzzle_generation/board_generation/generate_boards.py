@@ -466,8 +466,18 @@ def main():
             if isinstance(w, str) and w:
                 previously_used_words.add(w.lower())
 
+    # Add singular/plural variants to previously used words
+    expanded_exclusions: Set[str] = set(previously_used_words)
+    for word in previously_used_words:
+        if word.endswith('s'):
+            # Also exclude singular form (word without 's')
+            expanded_exclusions.add(word[:-1])
+        else:
+            # Also exclude plural form (word with 's' appended)
+            expanded_exclusions.add(word + 's')
+
     # Build usable word set
-    usable_words = base_words.difference(exclusions).difference(previously_used_words)
+    usable_words = base_words.difference(exclusions).difference(expanded_exclusions)
     if not usable_words:
         print(f"No usable words available for {iso(target_dt)}")
         sys.exit(1)

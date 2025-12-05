@@ -92,31 +92,24 @@ def format_grid(grid: List[List[Optional[str]]]) -> str:
 
 
 def print_clues(clues: List[Dict[str, Any]]) -> None:
-    def sort_key(c: Dict[str, Any]):
-        return (c.get("row", 0), c.get("col", 0), c.get("length", 0))
-
+    # Sort across clues by row, then col
     across = sorted(
         [c for c in clues if c.get("direction") == "across"],
-        key=sort_key,
+        key=lambda c: (c.get("row", 0), c.get("col", 0)),
     )
-    # For down clues, organize by y index (column) primarily, then by row
+    # Sort down clues by col, then row
     down = sorted(
         [c for c in clues if c.get("direction") == "down"],
-        key=lambda c: (c.get("col", 0), c.get("row", 0), c.get("length", 0)),
+        key=lambda c: (c.get("col", 0), c.get("row", 0)),
     )
-
-    def render(group: List[Dict[str, Any]]) -> None:
-        for c in group:
-            row = int(c.get("row", 0))
-            col = int(c.get("col", 0))
-            length = c.get("length", "?")
-            clue_text = c.get("clue", "")
-            print(f"  ({row},{col}) len {length}: {clue_text}")
-
-    print("Across:")
-    render(across)
-    print("\nDown:")
-    render(down)
+    
+    # Print all clues without section headers
+    for c in across + down:
+        row = int(c.get("row", 0))
+        col = int(c.get("col", 0))
+        direction = c.get("direction", "")
+        clue_text = c.get("clue", "")
+        print(f" {row}, {col}, {direction}, {clue_text}")
 
 
 def main(argv: List[str]) -> int:

@@ -8,13 +8,13 @@ Usage:
   python generate_partial_board_clues.py <date> [--file FILE]
 
 The input file must be a CSV with header:
-  row, col, direction, optional_clue
+  row, col, direction, clue
 
 Where:
 - row: row index (integer)
 - col: column index (integer)
 - direction: direction string: "across" or "down"
-- optional_clue: optional free-text clue; if empty, a clue will be generated
+- clue: free-text clue; if empty, clue will be generated
 
 Examples:
   python generate_partial_board_clues.py 09-25-2025
@@ -27,7 +27,7 @@ CSV example:
 Notes:
 - Date must be in MM-DD-YYYY format.
 - Direction is "across" or "down" (case-insensitive).
-- If optional_clue is non-empty, it will be used as-is; otherwise a clue will be
+- If clue is non-empty, it will be used as-is; otherwise a clue will be
   generated with OpenAI via utils.generate_clues_for_words using the suffix
   "We'll just do one word, actually".
 
@@ -153,7 +153,7 @@ def parse_input_file(path: str, date_str: str) -> List[InputRow]:
             skipinitialspace=True,
             escapechar="\\",
         )
-        expected = ["row", "col", "direction", "optional_clue"]
+        expected = ["row", "col", "direction", "clue"]
         for req in expected:
             if req not in (reader.fieldnames or []):
                 raise RuntimeError(
@@ -164,7 +164,7 @@ def parse_input_file(path: str, date_str: str) -> List[InputRow]:
             row_str = (row.get("row") or "").strip()
             col_str = (row.get("col") or "").strip()
             dir_str = (row.get("direction") or "").strip().lower()
-            raw_clue = row.get("optional_clue")
+            raw_clue = row.get("clue")
             if raw_clue is not None:
                 raw_clue = raw_clue.strip()
 
