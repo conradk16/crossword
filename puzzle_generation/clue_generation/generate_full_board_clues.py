@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Generate clues for a single board date and upload to local environment.
+Generate clues for board dates in a date range and upload to local environment.
 
 This script generates clue records and uploads them directly to the local API.
 
 Usage:
-  python generate_full_board_clues.py DATE
+  python generate_full_board_clues.py START_DATE END_DATE
 
 Arguments:
-  DATE: Date in MM-DD-YYYY format
+  START_DATE: Start date (inclusive) in MM-DD-YYYY format
+  END_DATE: End date (inclusive) in MM-DD-YYYY format
 
 Environment variables:
   - CROSSWORD_ADMIN_URL_LOCAL
@@ -132,38 +133,25 @@ def build_ndjson_for_date(date_iso: str, words_payload: Dict[str, Any], word_to_
     return "\n".join(lines) + ("\n" if lines else "")
 
 
-def main(argv: List[str]) -> int:
-    parser = argparse.ArgumentParser(description="Generate clues for a single board date and write NDJSON to file")
-    parser.add_argument("date", help="Date (MM-DD-YYYY)")
-    args = parser.parse_args(argv)
-
-    try:
-        validate_date(args.date)
-        target_date = parse_mmddyyyy(args.date)
-    except Exception as e:
-        print(f"Invalid date: {e}", file=sys.stderr)
-        return 2
-
-    try:
-        base_url, admin_key = get_config("local")
-    except Exception as e:
-        print(str(e), file=sys.stderr)
-        return 2
-
+def process_single_date(base_url: str, admin_key: str, target_date: dt.date) -> tuple[bool, str]:
+    """
+    Process a single date: fetch words, generate clues, and upload.
+    
+    Returns:
+        (success: bool, message: str)
+    """
     mmddyyyy = to_mmddyyyy(target_date)
     iso_date = to_iso(target_date)
     print(f"Processing {mmddyyyy} ...")
 
     data = http_get_word_locs(base_url, admin_key, mmddyyyy)
     if data is None:
-        print(f"No puzzle exists for {mmddyyyy}")
-        return 1
+        return False, f"No puzzle exists for {mmddyyyy}"
 
     words_payload = data
     words = words_payload.get("words") or []
     if not isinstance(words, list) or not words:
-        print(f"No words returned for {mmddyyyy}")
-        return 1
+        return False, f"No words returned for {mmddyyyy}"
 
     word_list: List[str] = []
     for w in words:
@@ -172,19 +160,16 @@ def main(argv: List[str]) -> int:
             word_list.append(word)
 
     if not word_list:
-        print(f"No valid words for {mmddyyyy}")
-        return 1
+        return False, f"No valid words for {mmddyyyy}"
 
     try:
         word_to_clue = generate_clues_for_words(word_list)
     except Exception as e:
-        print(f"Clue generation failed for {mmddyyyy}: {e}", file=sys.stderr)
-        return 1
+        return False, f"Clue generation failed for {mmddyyyy}: {e}"
 
     ndjson_text = build_ndjson_for_date(iso_date, words_payload, word_to_clue)
     if not ndjson_text.strip():
-        print(f"No clue records to upload for {mmddyyyy}")
-        return 1
+        return False, f"No clue records to upload for {mmddyyyy}"
 
     num_records = len(ndjson_text.strip().splitlines())
     print(f"Uploading {num_records} clue record(s) ...")
@@ -192,13 +177,60 @@ def main(argv: List[str]) -> int:
     try:
         result = http_post_bulk_clues(base_url, admin_key, ndjson_text)
     except Exception as e:
-        print(f"Bulk upload failed: {e}", file=sys.stderr)
-        return 1
+        return False, f"Bulk upload failed: {e}"
 
     updated_dates = int(result.get("updated_dates", 0))
     updated_clues = int(result.get("updated_clues", 0))
-    print(f"Upload complete: updated_dates={updated_dates}, updated_clues={updated_clues}")
-    return 0
+    return True, f"Upload complete: updated_dates={updated_dates}, updated_clues={updated_clues}"
+
+
+def main(argv: List[str]) -> int:
+    parser = argparse.ArgumentParser(description="Generate clues for board dates in a date range and upload to API")
+    parser.add_argument("start_date", help="Start date (inclusive) in MM-DD-YYYY format")
+    parser.add_argument("end_date", help="End date (inclusive) in MM-DD-YYYY format")
+    args = parser.parse_args(argv)
+
+    try:
+        validate_date(args.start_date)
+        validate_date(args.end_date)
+        start_date = parse_mmddyyyy(args.start_date)
+        end_date = parse_mmddyyyy(args.end_date)
+    except Exception as e:
+        print(f"Invalid date: {e}", file=sys.stderr)
+        return 2
+
+    if start_date > end_date:
+        print("Error: start_date must be <= end_date", file=sys.stderr)
+        return 2
+
+    try:
+        base_url, admin_key = get_config("local")
+    except Exception as e:
+        print(str(e), file=sys.stderr)
+        return 2
+
+    # Process all dates in the range (inclusive)
+    current_date = start_date
+    success_count = 0
+    failure_count = 0
+    
+    while current_date <= end_date:
+        success, message = process_single_date(base_url, admin_key, current_date)
+        if success:
+            print(message)
+            success_count += 1
+        else:
+            print(f"Failed: {message}", file=sys.stderr)
+            failure_count += 1
+        
+        # Move to next date
+        current_date += dt.timedelta(days=1)
+        print()  # Blank line between dates
+    
+    print(f"Summary: {success_count} succeeded, {failure_count} failed")
+    
+    # Return 0 if all succeeded, 1 if any failed
+    return 0 if failure_count == 0 else 1
 
 
 if __name__ == "__main__":

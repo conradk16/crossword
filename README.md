@@ -9,3 +9,6 @@ There are three main apps in separate directories: `expo_app`, `nextjs`, and `ng
 - docker buildx build --no-cache --platform linux/amd64 \
 -t conradkuklinsky/crossword-nextjs-dev:b0a5b3d --push .
 - make sure to change the commit sha to something new
+
+## Notes
+- removed dev tier in AWS, so prod's the only one that actually works.
