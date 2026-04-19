@@ -40,6 +40,7 @@ def generate_clues_for_words(words: List[str], prompt_suffix: str = "") -> Dict[
         raise RuntimeError("OPENAI_API_KEY is not set.")
 
     model = os.environ.get('OPENAI_CLUE_MODEL')
+    reasoning_effort = os.environ.get('OPENAI_REASONING_EFFORT', 'high')
 
     # Reuse the same editorial instructions used in generate_puzzles.py
     instructions = (
@@ -52,7 +53,7 @@ def generate_clues_for_words(words: List[str], prompt_suffix: str = "") -> Dict[
         "\n\tb. Are there words or references that too many people won't know? "
         "\n\tc. Is the clue too difficult? "
         "\n\td. Does the clue contain part of the answer directly in it? (not allowed) "
-        "\n3. Choose one from the remaining options, usually choosing a normal good clue, but occasionally choosing a more clever one. Also, try to avoid doing too many one-word clues. "
+        "\n3. Choose one from the remaining options, mixing things up between more straightforward and clever. Also, try to avoid doing too many one-word clues. "
         "\n4. Determine if the clue works grammatically, i.e. does the clue tense or plurality match the answer? If not, adjust it before submitting. "
     )
 
@@ -104,6 +105,7 @@ def generate_clues_for_words(words: List[str], prompt_suffix: str = "") -> Dict[
         response = client.responses.create(
             model=model,
             input=[{"role": "user", "content": prompt}],
+            reasoning={"effort": reasoning_effort},
             text={
                 "format": {
                     "type": "json_schema",

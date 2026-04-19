@@ -1,4 +1,4 @@
-How to get initial certificates
+# How to get initial certificates
 
 Set cloudflare config to flexible
 
@@ -24,3 +24,10 @@ set cloudflare config to strict
 
 deploy normally
 
+# How to get auto-renewals working cleanly
+
+sudo dnf install -y cronie
+sudo systemctl enable --now crond
+crontab -e -> edit -> 15 4 * * * /usr/bin/docker exec nginx nginx -s reload >> /var/log/nginx-reload.log 2>&1
+
+The above forces nginx to reload once a day so it will serve the latest cert
