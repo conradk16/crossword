@@ -28,6 +28,6 @@ deploy normally
 
 sudo dnf install -y cronie
 sudo systemctl enable --now crond
-crontab -e -> edit -> 15 4 * * * /usr/bin/docker exec nginx nginx -s reload >> /var/log/nginx-reload.log 2>&1
+crontab -e -> edit -> 15 4 * * * /usr/bin/docker exec nginx nginx -s reload >> /home/ec2-user/nginx-reload.log 2>&1
 
 The above forces nginx to reload once a day so it will serve the latest cert

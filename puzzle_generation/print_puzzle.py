@@ -110,7 +110,7 @@ def print_clues(clues: List[Dict[str, Any]]) -> None:
         col = int(c.get("col", 0))
         direction = c.get("direction", "")
         clue_text = c.get("clue", "")
-        print(f" {row}, {col}, {direction}, {clue_text}")
+        print(f" {row} | {col} | {direction} | {clue_text}")
 
 
 def main(argv: List[str]) -> int:

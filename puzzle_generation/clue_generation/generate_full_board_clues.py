@@ -15,8 +15,9 @@ Environment variables:
   - CROSSWORD_ADMIN_URL_LOCAL
   - CROSSWORD_ADMIN_KEY_LOCAL
 
-Also requires:
-  - OPENAI_API_KEY (and optionally OPENAI_CLUE_MODEL) for clue generation
+Also requires (depending on USE_ANTHROPIC):
+  - ANTHROPIC_API_KEY (when USE_ANTHROPIC=True; uses Claude Opus 4.7)
+  - OPENAI_API_KEY (and optionally OPENAI_CLUE_MODEL) when USE_ANTHROPIC=False
 """
 
 from __future__ import annotations
@@ -33,6 +34,9 @@ import requests
 
 from utils import generate_clues_for_words
 
+# Toggle clue-generation provider: True => Anthropic (Claude Opus 4.7), False => OpenAI.
+USE_ANTHROPIC = True
+
 # Use macOS system trust store so Python requests trusts the same CAs as curl
 try:
     import truststore  # type: ignore
@@ -44,6 +48,40 @@ except Exception:
 
 
 DATE_REGEX = re.compile(r"^\d{2}-\d{2}-\d{4}$")
+
+# Accumulating log of human clue overrides, in the parent puzzle_generation/ dir.
+# Written by overwrite_board_clues.py; its contents are injected into the clue-generation
+# prompt so the LLM learns from past human corrections.
+EXAMPLES_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "clue_override_examples.txt")
+)
+
+
+def load_override_examples() -> str:
+    """Return a prompt block built from past human clue overrides, or '' if none.
+
+    Reads EXAMPLES_PATH, drops blank lines and '#' comment lines, and wraps the rest in
+    a short instruction so the model treats them as guidance.
+    """
+    try:
+        with open(EXAMPLES_PATH, "r", encoding="utf-8") as f:
+            raw = f.read()
+    except FileNotFoundError:
+        return ""
+
+    body = "\n".join(
+        line for line in raw.splitlines() if line.strip() and not line.lstrip().startswith("#")
+    ).strip()
+    if not body:
+        return ""
+
+    return (
+        "Below are past cases where an auto-generated clue was replaced by a human editor. "
+        "Each shows the answer word, the original rejected clue (when available), the human's "
+        "preferred clue, and why the original was rejected. Learn from these — match the "
+        "preferred style and avoid the mistakes called out in the reasons:\n\n"
+        f"{body}"
+    )
 
 
 def validate_date(date_str: str) -> None:
@@ -133,10 +171,15 @@ def build_ndjson_for_date(date_iso: str, words_payload: Dict[str, Any], word_to_
     return "\n".join(lines) + ("\n" if lines else "")
 
 
-def process_single_date(base_url: str, admin_key: str, target_date: dt.date) -> tuple[bool, str]:
+def process_single_date(
+    base_url: str,
+    admin_key: str,
+    target_date: dt.date,
+    override_context: str = "",
+) -> tuple[bool, str]:
     """
     Process a single date: fetch words, generate clues, and upload.
-    
+
     Returns:
         (success: bool, message: str)
     """
@@ -163,7 +206,11 @@ def process_single_date(base_url: str, admin_key: str, target_date: dt.date) -> 
         return False, f"No valid words for {mmddyyyy}"
 
     try:
-        word_to_clue = generate_clues_for_words(word_list)
+        word_to_clue = generate_clues_for_words(
+            word_list,
+            prompt_suffix=override_context,
+            use_anthropic=USE_ANTHROPIC,
+        )
     except Exception as e:
         return False, f"Clue generation failed for {mmddyyyy}: {e}"
 
@@ -209,13 +256,18 @@ def main(argv: List[str]) -> int:
         print(str(e), file=sys.stderr)
         return 2
 
+    # Load past human overrides once; injected into every date's generation prompt.
+    override_context = load_override_examples()
+    if override_context:
+        print(f"Loaded override examples from {EXAMPLES_PATH}")
+
     # Process all dates in the range (inclusive)
     current_date = start_date
     success_count = 0
     failure_count = 0
-    
+
     while current_date <= end_date:
-        success, message = process_single_date(base_url, admin_key, current_date)
+        success, message = process_single_date(base_url, admin_key, current_date, override_context)
         if success:
             print(message)
             success_count += 1

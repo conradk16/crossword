@@ -402,7 +402,7 @@ def load_exclusions(base_dir: str) -> Set[str]:
     ex: Set[str] = set()
     with open(exclusions_path) as f:
         for raw_line in f:
-            w = raw_line.strip().lower()
+            w = raw_line.split(',', 1)[0].strip().lower()
             if not w or not w.isalpha():
                 continue
             ex.add(w)

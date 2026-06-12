@@ -89,7 +89,7 @@ def main() -> None:
     xwordlist_path = os.path.join(base_dir, "online_lists/xwordlist.txt")
     broda_diehl_path = os.path.join(base_dir, "online_lists/broda_diehl_list.txt")
     xwordinfo_path = os.path.join(base_dir, "online_lists/xwi_list.txt")
-    output_path = os.path.join(base_dir, "filtered_words_simple.txt")
+    output_path = os.path.join(base_dir, "filtered_words.txt")
     conrads_exclusions_path = os.path.join(base_dir, "conrads_exclusions.txt")
 
     xwordlist_entries = parse_xwordlist(xwordlist_path)

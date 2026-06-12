@@ -1,0 +1,33 @@
+# Human clue overrides: answer word + original (rejected) clue + preferred clue + reason the original was rejected.
+# The goal here is to provide some examples of good and bad clues to improve the quality of new clues.
+
+Word: MEOWS
+Original (rejected) clue: Sounds from a litter?
+Preferred clue: Cat sounds
+Reason original was rejected: litter doesn't necessarily point to cats (could be dogs or other animals) + question mark makes no sense since most people's first instinct is not to think of something else when thinking of 'a litter'
+---
+Word: NUN
+Original (rejected) clue: One in a habit?
+Preferred clue: Convent dweller
+Reason original was rejected: is an interesting clue but habit as nun clothing is too obscure
+---
+Word: CLING
+Original (rejected) clue: Static ___
+Preferred clue: Hold tightly
+Reason original was rejected: too many users won't know the phrase 'static cling'
+---
+Word: LAURA
+Original (rejected) clue: Dern of "Marriage Story"
+Preferred clue: Dern of "Jurrasic Park"
+Reason original was rejected: not enough of my audience have seen Marriage Story
+---
+Word: INTEL
+Original (rejected) clue: Pentium maker
+Preferred clue: Computer chip giant
+Reason original was rejected: much of the younger audience won't have heard of Pentium
+---
+Word: FLAG
+Original (rejected) clue: Old Glory, e.g.
+Preferred clue: It might be at half-mast
+Reason original was rejected: Old Glory is not well known among much of the intended audience
+---

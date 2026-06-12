@@ -1,58 +1,63 @@
 #!/usr/bin/env python3
 """
-Generate clues for a subset of entries specified in clues_to_overwrite.csv and upload to local database.
+Overwrite clues for a subset of entries specified in clues_to_overwrite.csv and upload to local database.
 
-This script generates clue records and uploads them directly to the local database.
+This script reads clue records from the input file and uploads them directly to the local database.
 
 Usage:
-  python generate_partial_board_clues.py <date> [--file FILE]
+  python overwrite_board_clues.py <date> [--file FILE]
 
-The input file must be a CSV with header:
-  row, col, direction, clue
+The input file has no header. Each line is pipe-separated:
+  row | col | direction | clue | reason
 
 Where:
 - row: row index (integer)
 - col: column index (integer)
 - direction: direction string: "across" or "down"
-- clue: free-text clue; if empty, clue will be generated
+- clue: free-text clue (may contain commas)
+- reason: why the original clue was overridden (optional)
+
+Workflow: paste a line straight from the output of print_puzzle.py
+(row | col | direction | clue) as-is for an override with no reason, or append
+" | <reason>" to record why. Fields are pipe-delimited, so the clue is its own
+field and any commas inside it are preserved automatically — no escaping needed.
+Lines that don't parse (e.g. the "Date:"/"Grid:" banner from print_puzzle.py,
+which has no pipes) are skipped.
+
+Every override that includes a reason is also appended to
+../clue_override_examples.txt (answer word + original clue + preferred clue +
+reason) so the reasons can be fed back into clue generation. The original clue is
+read from the local board before the override is applied.
 
 Examples:
-  python generate_partial_board_clues.py 09-25-2025
-  python generate_partial_board_clues.py 09-25-2025 --file my_clues.csv
+  python overwrite_board_clues.py 09-25-2025
+  python overwrite_board_clues.py 09-25-2025 --file my_clues.csv
 
 CSV example:
-  2, 0, across,
-  0, 0, down, yummy yogurt
+  0 | 0 | down | yummy yogurt
+  2 | 0 | across | "Wait," she said, with a comma | original was too obscure
 
 Notes:
 - Date must be in MM-DD-YYYY format.
 - Direction is "across" or "down" (case-insensitive).
-- If clue is non-empty, it will be used as-is; otherwise a clue will be
-  generated with OpenAI via utils.generate_clues_for_words using the suffix
-  "We'll just do one word, actually".
+- Rows with an empty clue are skipped; the reason is optional.
 
 Environment variables:
   - CROSSWORD_ADMIN_URL_LOCAL, CROSSWORD_ADMIN_KEY_LOCAL
-
-Also requires:
-  - OPENAI_API_KEY (and optionally OPENAI_CLUE_MODEL) for clue generation
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import datetime as dt
 import json
 import os
 import re
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
-
-from utils import generate_clues_for_words
 
 # Use macOS system trust store so Python requests trusts the same CAs as curl
 try:
@@ -66,6 +71,13 @@ except Exception:
 
 DATE_REGEX = re.compile(r"^\d{2}-\d{2}-\d{4}$")
 LOC_REGEX = re.compile(r"^\(\s*(\d+)\s*,\s*(\d+)\s*\)$")  # unused; kept for clarity in docs
+
+# Accumulating log of human clue overrides, in the parent puzzle_generation/ dir.
+# Each override appends an example (word + preferred clue + reason) that is fed
+# back into clue generation by generate_full_board_clues.py.
+EXAMPLES_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "clue_override_examples.txt")
+)
 
 
 def validate_date(date_str: str) -> None:
@@ -109,6 +121,18 @@ def http_get_word_locs(base_url: str, admin_key: str, mmddyyyy: str, timeout: in
     return resp.json()
 
 
+def http_get_puzzle(base_url: str, admin_key: str, mmddyyyy: str, timeout: int = 30) -> Optional[Dict[str, Any]]:
+    """Fetch the full puzzle (grid + clues) for a date. Returns None on 404."""
+    url = f"{base_url}/api/admin/puzzles/get_by_date?date={mmddyyyy}"
+    headers = {"x-admin-secret": admin_key, "Accept": "application/json"}
+    resp = requests.get(url, headers=headers, timeout=timeout)
+    if resp.status_code == 404:
+        return None
+    if resp.status_code >= 400:
+        raise RuntimeError(f"GET {url} failed: {resp.status_code} {resp.text}")
+    return resp.json()
+
+
 def http_post_bulk_clues(base_url: str, admin_key: str, ndjson_text: str, timeout: int = 60) -> Dict[str, Any]:
     """Upload clues in bulk via the admin API."""
     url = f"{base_url}/api/admin/clues/bulk_upload"
@@ -138,45 +162,58 @@ class InputRow:
     word: Optional[str] = None
     # If provided in file, use as-is
     provided_clue: Optional[str] = None
+    # Why the original clue was overridden (required, from the file)
+    reason: Optional[str] = None
+    # The clue currently on the board before this override (from API); set later
+    original_clue: Optional[str] = None
 
 
 def parse_input_file(path: str, date_str: str) -> List[InputRow]:
-    """Parse the CSV file and return a list of InputRow items for the given date."""
+    """Parse the header-less input file and return a list of InputRow items for the given date.
+
+    Each line is "row, col, direction, clue, reason". The first three commas separate
+    row/col/direction, and the reason is taken from the last comma onward, so commas and
+    double quotes inside the clue are preserved as-is. Lines that don't parse cleanly
+    (blank lines, banners, etc.) are skipped, so output pasted straight from
+    print_puzzle.py (with a reason appended) works without editing.
+    """
     validate_date(date_str)
     d = parse_mmddyyyy(date_str)
     iso_date = to_iso(d)
-    
+
     items: List[InputRow] = []
     with open(path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(
-            f,
-            skipinitialspace=True,
-            escapechar="\\",
-        )
-        expected = ["row", "col", "direction", "clue"]
-        for req in expected:
-            if req not in (reader.fieldnames or []):
-                raise RuntimeError(
-                    f"Input file missing required column '{req}'. Columns found: {reader.fieldnames}"
-                )
-
-        for row in reader:
-            row_str = (row.get("row") or "").strip()
-            col_str = (row.get("col") or "").strip()
-            dir_str = (row.get("direction") or "").strip().lower()
-            raw_clue = row.get("clue")
-            if raw_clue is not None:
-                raw_clue = raw_clue.strip()
-
-            if dir_str not in ("across", "down"):
-                print(f"Skipping row with invalid direction '{dir_str}' (use 'across' or 'down')")
+        for line in f:
+            line = line.strip()
+            if not line:
                 continue
+
+            parts = [p.strip() for p in line.split("|")]
+            if len(parts) < 4:
+                # Not a clue row (e.g. a header/banner/grid line, which has no '|'); skip silently.
+                continue
+
+            row_str = parts[0]
+            col_str = parts[1]
+            dir_str = parts[2].lower()
+            # Fields are pipe-delimited, so the clue is its own field and may contain commas
+            # freely. The reason is the optional 5th field.
+            raw_clue = parts[3]
+            raw_reason = parts[4] if len(parts) >= 5 else ""
 
             try:
                 file_row = int(row_str)
                 file_col = int(col_str)
             except ValueError:
-                print(f"Skipping row with non-integer row/col values row='{row_str}', col='{col_str}'")
+                # Likely a non-data line (e.g. grid/banner); skip silently.
+                continue
+
+            if dir_str not in ("across", "down"):
+                print(f"Skipping row with invalid direction '{dir_str}' (use 'across' or 'down')")
+                continue
+
+            if not raw_clue:
+                print(f"Skipping row with empty clue at (row,col)=({file_row},{file_col}) {dir_str}")
                 continue
 
             ir = InputRow(
@@ -185,7 +222,8 @@ def parse_input_file(path: str, date_str: str) -> List[InputRow]:
                 direction=dir_str,
                 file_col=file_col,
                 file_row=file_row,
-                provided_clue=(raw_clue if raw_clue else None),
+                provided_clue=raw_clue,
+                reason=raw_reason,
             )
             items.append(ir)
     return items
@@ -210,6 +248,30 @@ def build_loc_index(words_payload: Dict[str, Any]) -> Dict[Tuple[str, int, int],
     return idx
 
 
+def build_original_clue_index(puzzle_payload: Dict[str, Any]) -> Dict[Tuple[str, int, int], str]:
+    """Return a map from (direction, row, col) -> existing clue text from a puzzle payload.
+
+    The puzzle payload comes from /api/admin/puzzles/get_by_date and contains a 'clues' list
+    of {clue, direction, row, col, length}, where row=y and col=x (same convention as the
+    resolved row0/col0 on each InputRow).
+    """
+    idx: Dict[Tuple[str, int, int], str] = {}
+    clues = puzzle_payload.get("clues") or []
+    for c in clues:
+        clue = c.get("clue")
+        direction = c.get("direction")
+        row = c.get("row")
+        col = c.get("col")
+        if not isinstance(clue, str) or not isinstance(direction, str):
+            continue
+        if direction not in ("across", "down"):
+            continue
+        if not isinstance(row, int) or not isinstance(col, int):
+            continue
+        idx[(direction, row, col)] = clue
+    return idx
+
+
 def resolve_row_col_for_item(item: InputRow, idx: Dict[Tuple[str, int, int], Dict[str, Any]]) -> bool:
     """Populate item.row0, item.col0, item.word by matching 0-based file loc to board starts."""
     key = (item.direction, item.file_row, item.file_col)
@@ -222,15 +284,12 @@ def resolve_row_col_for_item(item: InputRow, idx: Dict[Tuple[str, int, int], Dic
     return isinstance(item.row0, int) and isinstance(item.col0, int) and isinstance(item.word, str)
 
 
-def build_ndjson_for_items(items: List[InputRow], word_to_clue: Dict[str, str]) -> str:
+def build_ndjson_for_items(items: List[InputRow]) -> str:
     lines: List[str] = []
     for it in items:
         if it.row0 is None or it.col0 is None:
             continue
-        clue_text = it.provided_clue if (isinstance(it.provided_clue, str) and it.provided_clue.strip()) else None
-        if clue_text is None:
-            if isinstance(it.word, str) and it.word in word_to_clue:
-                clue_text = word_to_clue[it.word]
+        clue_text = it.provided_clue
         if not isinstance(clue_text, str) or not clue_text.strip():
             continue
         rec = {
@@ -244,8 +303,42 @@ def build_ndjson_for_items(items: List[InputRow], word_to_clue: Dict[str, str]) 
     return "\n".join(lines) + ("\n" if lines else "")
 
 
+def append_override_examples(items: List[InputRow]) -> int:
+    """Append each override (word + original clue + preferred clue + reason) to EXAMPLES_PATH.
+
+    Only items with a resolved word, a clue, and a reason are written. The original clue is
+    included when available (it's best-effort additive). Returns the number of examples
+    appended.
+    """
+    blocks: List[str] = []
+    for it in items:
+        if not (isinstance(it.word, str) and it.word.strip()):
+            continue
+        if not (isinstance(it.provided_clue, str) and it.provided_clue.strip()):
+            continue
+        if not (isinstance(it.reason, str) and it.reason.strip()):
+            continue
+        original_line = ""
+        if isinstance(it.original_clue, str) and it.original_clue.strip():
+            original_line = f"Original (rejected) clue: {it.original_clue.strip()}\n"
+        blocks.append(
+            f"Word: {it.word.strip()}\n"
+            f"{original_line}"
+            f"Preferred clue: {it.provided_clue.strip()}\n"
+            f"Reason original was rejected: {it.reason.strip()}\n"
+            "---\n"
+        )
+
+    if not blocks:
+        return 0
+
+    with open(EXAMPLES_PATH, "a", encoding="utf-8") as f:
+        f.write("".join(blocks))
+    return len(blocks)
+
+
 def main(argv: List[str]) -> int:
-    parser = argparse.ArgumentParser(description="Generate clues for specific entries listed in a file and upload to local database")
+    parser = argparse.ArgumentParser(description="Overwrite clues for specific entries listed in a file and upload to local database")
     parser.add_argument("date", help="Date in MM-DD-YYYY format")
     parser.add_argument("--file", default="clues_to_overwrite.csv", help="Path to the input CSV file")
     args = parser.parse_args(argv)
@@ -309,33 +402,29 @@ def main(argv: List[str]) -> int:
         print(f"No resolvable items for {mmddyyyy}.")
         return 1
 
-    # Collect words needing generation
-    words_to_generate: List[str] = []
-    for it in items:
-        if isinstance(it.provided_clue, str) and it.provided_clue.strip():
-            continue
-        if isinstance(it.word, str) and it.word.strip():
-            words_to_generate.append(it.word)
+    # Capture each entry's existing clue from the board BEFORE the override is applied, so it
+    # can be recorded alongside the preferred clue. Best-effort: a failure here must not block
+    # the override itself.
+    try:
+        puzzle = http_get_puzzle(base_url, admin_key, mmddyyyy)
+        if puzzle is None:
+            print(f"Warning: no puzzle found when fetching original clues for {mmddyyyy}.", file=sys.stderr)
+        else:
+            clue_idx = build_original_clue_index(puzzle)
+            for it in items:
+                if isinstance(it.row0, int) and isinstance(it.col0, int):
+                    it.original_clue = clue_idx.get((it.direction, it.row0, it.col0))
+    except Exception as e:
+        print(f"Warning: failed to fetch original clues for {mmddyyyy}: {e}", file=sys.stderr)
 
-    word_to_clue: Dict[str, str] = {}
-    if words_to_generate:
-        try:
-            word_to_clue = generate_clues_for_words(
-                words_to_generate,
-                prompt_suffix="We'll just do one word, actually",
-            )
-        except Exception as e:
-            print(f"Clue generation failed: {e}", file=sys.stderr)
-            # We can still proceed for those with provided clues
-
-    ndjson_text = build_ndjson_for_items(items, word_to_clue)
+    ndjson_text = build_ndjson_for_items(items)
     if not ndjson_text.strip():
-        print(f"No clue records generated.")
+        print(f"No clue records to upload.")
         return 1
 
     lines = ndjson_text.strip().splitlines()
     num_records = len(lines)
-    print(f"Generated {num_records} clue record(s)")
+    print(f"Prepared {num_records} clue record(s)")
 
     # Upload the generated clues to the database
     print(f"\nUploading {num_records} clue(s) to database ...")
@@ -349,6 +438,16 @@ def main(argv: List[str]) -> int:
     updated_dates = int(result.get("updated_dates", 0))
     updated_clues = int(result.get("updated_clues", 0))
     print(f"Upload complete: updated_dates={updated_dates}, updated_clues={updated_clues}")
+
+    # Record each override (word + preferred clue + reason) so it can be fed back
+    # into clue generation by generate_full_board_clues.py.
+    try:
+        appended = append_override_examples(items)
+        if appended:
+            print(f"Appended {appended} override example(s) to {EXAMPLES_PATH}")
+    except Exception as e:
+        print(f"Warning: failed to append override examples: {e}", file=sys.stderr)
+
     return 0
 
 
