@@ -1,6 +1,6 @@
 puzzle generation works in three phases, all of which are intended to be run locally. The lack of pipeline here is because puzzle creation is (more or less) a one-time thing.
 
-1. `generate_boards.py` grabs from `filtered_words.txt`, filters out words in `conrads_exclusions.txt`, and generates boards for a date range. Writes to local db.
+1. `generate_boards.py` grabs from `filtered_words.txt`, filters out words in `conrads_exclusions.txt` and `bots_exclusions.txt` (each line is `word` or `word,reason`), and generates boards for a date range. Writes to local db.
 
 2. `generate_full_board_clues.py` generates clues for a date range and writes to local db.
 

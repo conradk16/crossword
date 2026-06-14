@@ -31,10 +31,18 @@ def parse_xwordinfo_list(file_path: str) -> List[Tuple[str, int]]:
         results.append((parts[0].lower(), int(parts[1]) * 2))
     return results
 
-def get_conrads_exclusions(file_path: str) -> Set[str]:
-    with open(file_path) as f:
-        lines = f.read().splitlines()
-    return set(lines)
+def get_exclusions(*file_paths: str) -> Set[str]:
+    # Each line is "word" or "word,reason" (reason is optional and ignored here).
+    exclusions: Set[str] = set()
+    for file_path in file_paths:
+        if not os.path.exists(file_path):
+            continue
+        with open(file_path) as f:
+            for raw_line in f:
+                word = raw_line.split(",", 1)[0].strip().lower()
+                if word:
+                    exclusions.add(word)
+    return exclusions
 
 def is_valid(word: str, score: int) -> bool:
     if not word.isalpha():
@@ -91,11 +99,12 @@ def main() -> None:
     xwordinfo_path = os.path.join(base_dir, "online_lists/xwi_list.txt")
     output_path = os.path.join(base_dir, "filtered_words.txt")
     conrads_exclusions_path = os.path.join(base_dir, "conrads_exclusions.txt")
+    bots_exclusions_path = os.path.join(base_dir, "bots_exclusions.txt")
 
     xwordlist_entries = parse_xwordlist(xwordlist_path)
     broda_diehl_entries = parse_broda_diehl_list(broda_diehl_path)
     xwordinfo_entries = parse_xwordinfo_list(xwordinfo_path)
-    conrads_exclusions = get_conrads_exclusions(conrads_exclusions_path)
+    exclusions = get_exclusions(conrads_exclusions_path, bots_exclusions_path)
 
     # Print histograms before applying validity checks
     print_length_score_histograms(xwordlist_entries, "Xwordlist")
@@ -105,7 +114,7 @@ def main() -> None:
     seen = set()
     filtered_words: List[str] = []
     for word, score in broda_diehl_entries + xwordlist_entries:
-        if is_valid(word, score) and word not in seen and word not in conrads_exclusions:
+        if is_valid(word, score) and word not in seen and word not in exclusions:
             filtered_words.append(word)
             seen.add(word)
 

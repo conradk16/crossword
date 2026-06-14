@@ -51,6 +51,7 @@ def generate_clues_for_words(
         "\n\tc. Does the clue contain part of the answer directly in it? (not allowed) "
         "\n3. Choose one from the remaining options, mixing things up between more straightforward and clever. Also, try to avoid doing too many one-word clues. "
         "\n4. Determine if the clue works grammatically, i.e. does the clue tense or plurality match the answer? If not, adjust it before submitting. "
+        "\n\n Think through why the following examples were overridden to get a sense of mistakes to avoid before you get started."
     )
 
     # maybe use later: "Style: keep Monday-easy; avoid niche trivia."

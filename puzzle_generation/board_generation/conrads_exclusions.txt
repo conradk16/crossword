@@ -1756,7 +1756,7 @@ tracey
 pushpop
 traceto
 jute
-gerund
+gerund, too obscure
 koed
 elnino
 mandms
@@ -1770,20 +1770,20 @@ zulus
 playa
 bawdy
 leah
-amore
+amore, not english
 mange
-brent
-furor
+brent, no superfamous people named brent
+furor, no accents/umlauts allowed
 tbird
 peon
 outeat
 trevi
 amigo
-veinte
+veinte, not english
 renee
 salvo
 wimpish
-roy
+roy, no superfamous people named roy
 primly
 amour
 emceed
@@ -1794,7 +1794,7 @@ elise
 aquas
 ronin
 westla
-getsset
+getsset, not a common phrase
 roo
 lagtime
 earhole
@@ -1822,7 +1822,7 @@ prima
 hew
 shod
 ochre
-merci
+merci, not english
 vegetal
 shearer
 servile
@@ -1883,12 +1883,12 @@ weepie
 redink
 etcetc
 hgtv
-ocho
+ocho, not english
 jamb
 yeavote
-oui
-papoose
-pap
+oui, not english
+papoose, too obscure
+pap, too vulgar
 denis
 setby
 yearold

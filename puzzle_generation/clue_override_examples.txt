@@ -31,3 +31,58 @@ Original (rejected) clue: Old Glory, e.g.
 Preferred clue: It might be at half-mast
 Reason original was rejected: Old Glory is not well known among much of the intended audience
 ---
+Word: NAIVE
+Original (rejected) clue: Like a babe in the woods
+Preferred clue: Trusting to a fault
+Reason original was rejected: "Like a babe in the woods" is not a common expression anymore
+---
+Word: DAFT
+Original (rejected) clue: Off one's rocker
+Preferred clue: Foolish
+Reason original was rejected: "Off one's rocker" implies genuinely unhinged or crazy. "Daft" is much milder — silly, foolish, a bit dim
+---
+Word: UBOAT
+Original (rejected) clue: WWII German submarine
+Preferred clue: Historical German submarine
+Reason original was rejected: A bit factually misleading since German's had uboats in both world wars
+---
+Word: OTTO
+Original (rejected) clue: "The Simpsons" bus driver
+Preferred clue: ___ von Bismark
+Reason original was rejected: The Simpson's "Otto" is niche to simpsons fans, so too obscure. People who haven't watched it might only know of things like Homer, "Doh" or Bart which would be more valid to use in clues.
+---
+Word: ALONG
+Original (rejected) clue: Get ___ (manage)
+Preferred clue: "___ for the ride"
+Reason original was rejected: "manage" makes no sense in this clue
+---
+Word: SANG
+Original (rejected) clue: Snitched, slangily
+Preferred clue: Carried a tune
+Reason original was rejected: "sang" does not mean "snitched" anymore, that might be an outdated usage
+---
+Word: FRONTAL
+Original (rejected) clue: ___ lobe (brain area)
+Preferred clue: ___ lobe
+Reason original was rejected: "brain area" in parens is overkill
+---
+Word: FIG
+Original (rejected) clue: ___ Newton (cookie)
+Preferred clue: ___ Newton (snack)
+Reason original was rejected: fig newton is not really a cookie
+---
+Word: GROOT
+Original (rejected) clue: "I am ___!" (Vin Diesel line)
+Preferred clue: "I am ___!" (Marvel line)
+Reason original was rejected: It's not well-known that Vin Diesel plays Groot
+---
+Word: GRACED
+Original (rejected) clue: Was on the cover of
+Preferred clue: Honored (by someone's presence)
+Reason original was rejected: Grammar is wrong, you can't substitue here since "He graced the cover of the magazine" would be replaced by "He was on the cover of the cover of the magazine" which makes no sense. This would only work if "he graced the magazine" was a common phrase.
+---
+Word: SLID
+Original (rejected) clue: Was safe at home, perhaps
+Preferred clue: Moved like a hockey puck
+Reason original was rejected: too difficult, niche baseball clue with no hint like a '?' that the clue refers to baseball. Also "perhaps" implies that being safe at home is an example of "slid" which it is not necessarily since sliding does not guarantee safety.
+---

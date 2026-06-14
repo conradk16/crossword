@@ -1,0 +1,31 @@
+Can you act as clue editor for me? I've had another bot already generate crossword clues for this week (<dates here>), but now I'd like for you to review them and fix any mistakes. Here's the process:
+
+## Setup notes
+
+Use the virtual environment (venv) in the puzzle_generation directory for running python commands and the .env file has a useful CROSSWORD_ADMIN_KEY_LOCAL and other vars. 
+
+Clear puzzle_generation/clue_generation/clues_to_overwrite.csv of any old data.
+
+In a separate shell, get local nextjs running with `npm run dev` from the nextjs directory. This will be necessary for actually writing clues to the local db.
+
+Read the reference materials: the original prompt in puzzle_generation/clue_generation/utils.py as well as puzzle_generation/clue_override_examples.txt for context on what a good/bad clue actually looks like.
+
+## Steps for each day
+
+Run python3 print_puzzle.py local <date>, e.g. python3 print_puzzle.py local 06-16-2026
+
+Inspect the words in the board (the downs may be a bit tricky to read but you can do it) as well as the clues. Inspect each clue closely and see if it would be bad based on the override examples and prompt you read. This is difficult! Finding issues is the toughest part of this task. For any bad clues, copy the clue row over to puzzle_generation/clue_generation/clues_to_overwrite.csv and replace the clue with a simple clue. Don't worry about being too creative here, I'd rather make sure it's just a solid easy clue since there's no one to check your work. Finally add a reason why the other clue was bad: add a '|' symbol at the end of the row and then add your reason.
+
+Example:
+
+word: sang
+printed clue row:  1 | 4 | down | Snitched, slangily
+new clue row in clues_to_overwrite.csv:  1 | 4 | down | Carried a tune | "sang" does not mean "snitched" anymore, that might be an outdated usage
+
+Once you've entered in all rows that need fixing (I would estimate this would usually be between 0 and 3 overrides, rarely more), run clue_generation/overwrite_board_clues.py.
+
+clear puzzle_generation/clue_generation/clues_to_overwrite.csv
+
+## repeat the above steps for each day.
+
+## finally kill the nextjs shell

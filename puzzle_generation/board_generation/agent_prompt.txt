@@ -1,0 +1,11 @@
+Can you generate puzzle boards locally for the next week? (<insert dates>) Just use the generate_boards.py interactive tool. Also please grep through conrads_exclusions.txt looking for rows with a comma to see the reason why they were excluded before you start so you understand the kinds of things we want to exclude. Also look through conrads_inclusions.txt to understand any previous bot exclusions that should have been included. When you come across a word that doesn't work, add it to bots_exclusions.txt with a reason and regenerate that day's board.
+
+Details on running things:
+1. Start local nextjs with `npm run dev` in the nextjs directory
+2. use the venv in the puzzle_generation directory for Python, and there's also a .env file with the
+CROSSWORD_ADMIN_KEY_LOCAL
+3. when generating boards, generate 1 day at a time. Once it's done, it'll ask you if you want to do the next day. Doing this prevents re-using the same word multiple times (as opposed to doing all days of the week at once).
+4. Sunday's format can take a while (it's a big board with big words), so you might have to wait up to 3-5 minutes in some cases (not always)
+5. when finished, terminate the nextjs shell
+
+After you're done with all of that, run the "generate full board clues" python file for the week. If any fail, please try rerunning just that day once.

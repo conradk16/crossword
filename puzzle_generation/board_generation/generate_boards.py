@@ -396,16 +396,18 @@ def load_base_wordlist(base_dir: str) -> Set[str]:
 
 
 def load_exclusions(base_dir: str) -> Set[str]:
-    exclusions_path = os.path.join(base_dir, 'conrads_exclusions.txt')
-    if not os.path.exists(exclusions_path):
-        return set()
+    # Each line is "word" or "word,reason" (reason is optional and ignored here).
     ex: Set[str] = set()
-    with open(exclusions_path) as f:
-        for raw_line in f:
-            w = raw_line.split(',', 1)[0].strip().lower()
-            if not w or not w.isalpha():
-                continue
-            ex.add(w)
+    for filename in ('conrads_exclusions.txt', 'bots_exclusions.txt'):
+        exclusions_path = os.path.join(base_dir, filename)
+        if not os.path.exists(exclusions_path):
+            continue
+        with open(exclusions_path) as f:
+            for raw_line in f:
+                w = raw_line.split(',', 1)[0].strip().lower()
+                if not w or not w.isalpha():
+                    continue
+                ex.add(w)
     return ex
 
 
