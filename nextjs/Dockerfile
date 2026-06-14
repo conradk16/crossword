@@ -28,20 +28,28 @@ RUN apk add --no-cache aws-cli jq curl && \
 
 WORKDIR /app
 
+# Drop root: run as the unprivileged 'node' user shipped with node:20-alpine.
+# Own the (empty) workdir as node, then write every file as node via --chown so
+# the app can manage its runtime cache (.next/cache) WITHOUT a recursive `chown -R`
+# at the end (which would duplicate all of /app into an extra layer, ~doubling it).
+# Running non-root limits the blast radius of any future app-level RCE.
+RUN chown node:node /app
+USER node
+
 # Copy Atlas schema file and the entrypoint script
-COPY db/schema.pg.hcl /app/db/schema.pg.hcl
-COPY entrypoint.sh /app/entrypoint.sh
+COPY --chown=node:node db/schema.pg.hcl /app/db/schema.pg.hcl
+COPY --chown=node:node entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 
-COPY package.json ./
-COPY package-lock.json ./
+COPY --chown=node:node package.json ./
+COPY --chown=node:node package-lock.json ./
 
 RUN npm install --production
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/src/lib/usernameDisallowList.txt ./src/lib/usernameDisallowList.txt
+COPY --chown=node:node --from=builder /app/.next ./.next
+COPY --chown=node:node --from=builder /app/public ./public
+COPY --chown=node:node --from=builder /app/src/lib/usernameDisallowList.txt ./src/lib/usernameDisallowList.txt
 
 EXPOSE 3000
 
