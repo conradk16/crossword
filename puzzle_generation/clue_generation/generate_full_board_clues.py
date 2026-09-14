@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -35,7 +36,7 @@ import requests
 from utils import generate_clues_for_words
 
 # Toggle clue-generation provider: True => Anthropic (Claude Opus 4.7), False => OpenAI.
-USE_ANTHROPIC = True
+USE_ANTHROPIC = False
 
 # Use macOS system trust store so Python requests trusts the same CAs as curl
 try:
@@ -219,7 +220,7 @@ def process_single_date(
         return False, f"No clue records to upload for {mmddyyyy}"
 
     num_records = len(ndjson_text.strip().splitlines())
-    print(f"Uploading {num_records} clue record(s) ...")
+    print(f"Uploading {num_records} clue record(s) for {mmddyyyy} ...")
 
     try:
         result = http_post_bulk_clues(base_url, admin_key, ndjson_text)
@@ -261,24 +262,34 @@ def main(argv: List[str]) -> int:
     if override_context:
         print(f"Loaded override examples from {EXAMPLES_PATH}")
 
-    # Process all dates in the range (inclusive)
+    # Process all dates in the range (inclusive) concurrently, one worker per date
+    dates: List[dt.date] = []
     current_date = start_date
+    while current_date <= end_date:
+        dates.append(current_date)
+        current_date += dt.timedelta(days=1)
+
     success_count = 0
     failure_count = 0
 
-    while current_date <= end_date:
-        success, message = process_single_date(base_url, admin_key, current_date, override_context)
-        if success:
-            print(message)
-            success_count += 1
-        else:
-            print(f"Failed: {message}", file=sys.stderr)
-            failure_count += 1
-        
-        # Move to next date
-        current_date += dt.timedelta(days=1)
-        print()  # Blank line between dates
-    
+    with ThreadPoolExecutor(max_workers=len(dates)) as executor:
+        futures = {
+            executor.submit(process_single_date, base_url, admin_key, d, override_context): d
+            for d in dates
+        }
+        for future in as_completed(futures):
+            mmddyyyy = to_mmddyyyy(futures[future])
+            try:
+                success, message = future.result()
+            except Exception as e:
+                success, message = False, f"Unexpected error for {mmddyyyy}: {e}"
+            if success:
+                print(f"[{mmddyyyy}] {message}")
+                success_count += 1
+            else:
+                print(f"[{mmddyyyy}] Failed: {message}", file=sys.stderr)
+                failure_count += 1
+
     print(f"Summary: {success_count} succeeded, {failure_count} failed")
     
     # Return 0 if all succeeded, 1 if any failed
