@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Promote local puzzles to a target tier (dev or prod).
+Promote local puzzles to a target tier (prod).
 
 For each date in the inclusive range [start_date, end_date]:
   1) Fetch the puzzle from the local Next.js admin endpoint:
@@ -18,8 +18,8 @@ For each date in the inclusive range [start_date, end_date]:
 Authentication
   - Uses header x-admin-secret on all admin endpoints.
   - Admin URLs and secrets can be provided via env:
-      CROSSWORD_ADMIN_URL_LOCAL, CROSSWORD_ADMIN_URL_DEV, CROSSWORD_ADMIN_URL_PROD
-      CROSSWORD_ADMIN_KEY_LOCAL, CROSSWORD_ADMIN_KEY_DEV, CROSSWORD_ADMIN_KEY_PROD
+      CROSSWORD_ADMIN_URL_LOCAL, CROSSWORD_ADMIN_URL_PROD
+      CROSSWORD_ADMIN_KEY_LOCAL, CROSSWORD_ADMIN_KEY_PROD
     Or via flags: --src-base-url, --src-admin-secret, --dest-admin-secret
     Fallback for secrets: CROSSWORD_ADMIN_KEY
 
@@ -27,7 +27,6 @@ Usage
   python promote_to_tier.py <tier> <start_mm_dd_yyyy> <end_mm_dd_yyyy> [--src-base-url URL] [--dry-run]
 
 Examples
-  python promote_to_tier.py dev 10-01-2025 10-07-2025
   python promote_to_tier.py prod 10-01-2025 10-01-2025 --dry-run
 """
 
@@ -60,8 +59,6 @@ def env_admin_key(name: str, default: Optional[str] = None) -> Optional[str]:
 DEFAULT_SOURCE_BASE_URL = env_admin_url("CROSSWORD_ADMIN_URL_LOCAL", "http://localhost:3000") or "http://localhost:3000"
 
 def dest_base_url_for_tier(tier: str) -> str:
-    if tier == "dev":
-        return env_admin_url("CROSSWORD_ADMIN_URL_DEV", "https://conradscrossword.dev") or "https://conradscrossword.dev"
     if tier == "prod":
         return env_admin_url("CROSSWORD_ADMIN_URL_PROD", "https://conradscrossword.com") or "https://conradscrossword.com"
     raise SystemExit(f"Unknown tier: {tier}")
@@ -83,12 +80,12 @@ class PuzzleData(TypedDict):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Promote local puzzles to a target tier.")
-    parser.add_argument("tier", choices=["dev", "prod"], help="Target tier to promote to")
+    parser.add_argument("tier", choices=["prod"], help="Target tier to promote to")
     parser.add_argument("start_date", help="Start date (MM-DD-YYYY)")
     parser.add_argument("end_date", help="End date (MM-DD-YYYY)")
     parser.add_argument("--src-base-url", default=DEFAULT_SOURCE_BASE_URL, help="Source base URL (default: %(default)s)")
     parser.add_argument("--src-admin-secret", default=(env_admin_key("CROSSWORD_ADMIN_KEY_LOCAL") or os.environ.get("CROSSWORD_SOURCE_ADMIN_KEY")), help="Admin secret for source (env CROSSWORD_ADMIN_KEY_LOCAL or CROSSWORD_SOURCE_ADMIN_KEY or CROSSWORD_ADMIN_KEY)")
-    parser.add_argument("--dest-admin-secret", default=None, help="Admin secret for destination (env CROSSWORD_ADMIN_KEY_DEV/PROD or CROSSWORD_DEST_ADMIN_KEY or CROSSWORD_ADMIN_KEY)")
+    parser.add_argument("--dest-admin-secret", default=None, help="Admin secret for destination (env CROSSWORD_ADMIN_KEY_PROD or CROSSWORD_DEST_ADMIN_KEY or CROSSWORD_ADMIN_KEY)")
     parser.add_argument("--admin-secret", default=os.environ.get("CROSSWORD_ADMIN_KEY"), help="Fallback admin secret for both source and destination if specific ones are not set (env CROSSWORD_ADMIN_KEY)")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be uploaded without making requests")
     parser.add_argument("--timeout", type=float, default=30.0, help="HTTP timeout seconds (default: %(default)s)")
@@ -98,9 +95,7 @@ def parse_args() -> argparse.Namespace:
 def require_admin_secret(src_secret: Optional[str], dest_secret: Optional[str], fallback: Optional[str], tier: str) -> Tuple[str, str]:
     # Resolve destination secret by tier env if not provided
     tier_env_key = None
-    if tier == "dev":
-        tier_env_key = env_admin_key("CROSSWORD_ADMIN_KEY_DEV")
-    elif tier == "prod":
+    if tier == "prod":
         tier_env_key = env_admin_key("CROSSWORD_ADMIN_KEY_PROD")
 
     source_secret = src_secret or env_admin_key("CROSSWORD_ADMIN_KEY_LOCAL") or fallback
@@ -108,7 +103,7 @@ def require_admin_secret(src_secret: Optional[str], dest_secret: Optional[str], 
     if not source_secret:
         raise SystemExit("Missing source admin secret. Provide --src-admin-secret or set CROSSWORD_SOURCE_ADMIN_KEY/CROSSWORD_ADMIN_KEY")
     if not dest_secret:
-        raise SystemExit("Missing destination admin secret. Provide --dest-admin-secret or set CROSSWORD_ADMIN_KEY_DEV/PROD or CROSSWORD_DEST_ADMIN_KEY/CROSSWORD_ADMIN_KEY")
+        raise SystemExit("Missing destination admin secret. Provide --dest-admin-secret or set CROSSWORD_ADMIN_KEY_PROD or CROSSWORD_DEST_ADMIN_KEY/CROSSWORD_ADMIN_KEY")
     return source_secret, dest_secret
 
 

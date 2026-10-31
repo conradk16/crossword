@@ -34,17 +34,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build and push the nextjs images (dev + prod)
-      - name: Build and push nextjs (dev)
-        uses: docker/build-push-action@v4
-        with:
-          context: ./nextjs
-          file: ./nextjs/Dockerfile
-          push: true
-          build-args: |
-            AWS_REGION=us-west-2
-          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nextjs-dev:${{ env.COMMIT_HASH }}
-
+      # Build and push the nextjs images
       - name: Build and push nextjs (prod)
         uses: docker/build-push-action@v4
         with:
@@ -55,18 +45,7 @@ jobs:
             AWS_REGION=us-east-1
           tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nextjs-prod:${{ env.COMMIT_HASH }}
 
-      # Build and push the nginx images (dev + prod)
-      - name: Build and push nginx (dev)
-        uses: docker/build-push-action@v4
-        with:
-          context: ./nginx
-          file: ./nginx/Dockerfile
-          push: true
-          build-args: |
-            SERVER_NAME=conradscrossword.dev
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/crossword-nginx-dev:${{ env.COMMIT_HASH }}
-
+      # Build and push the nginx images
       - name: Build and push nginx (prod)
         uses: docker/build-push-action@v4
         with:
@@ -78,17 +57,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/crossword-nginx-prod:${{ env.COMMIT_HASH }}
 
-      # Build and push the nginx certbot init images (dev + prod)
-      - name: Build and Push nginx certbot init (dev)
-        uses: docker/build-push-action@v4
-        with:
-          context: ./nginx_certbot_init
-          file: ./nginx_certbot_init/Dockerfile
-          push: true
-          build-args: |
-            SERVER_NAME=conradscrossword.dev
-          tags: ${{ secrets.DOCKER_USERNAME }}/crossword-nginx-certbot-init-dev:${{ env.COMMIT_HASH }}
-
+      # Build and push the nginx certbot init images
       - name: Build and Push nginx certbot init (prod)
         uses: docker/build-push-action@v4
         with:

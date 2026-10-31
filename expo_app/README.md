@@ -1,12 +1,10 @@
 # API Configuration
 
-This react-native app connects to a Next.js server on the backend. Which backend (local, dev, prod) is determined by EXPO_PUBLIC_API_ENV. There's no need to set this env variable manually, just use the following provided scripts:
+This react-native app connects to a Next.js server on the backend. Which backend (local, prod) is determined by EXPO_PUBLIC_API_ENV. There's no need to set this env variable manually, just use the following provided scripts:
 
 ## Expo Go development
 
 Run `npm run start` to start an Expo Go server that points to the backend running at `http:localhost:3000`. See the `nextjs` directory for how to run this locally. This is a good setup for testing with simulators.
-
-Run `npm run start:dev` to start an Expo Go server that points to the backend running at `https://conradscrossword.dev`. This is a good setup for testing with real devices. 
 
 Prod backend is not intended to be useed with Expo Go - instead create a release app with Xcode / Android studio.
 

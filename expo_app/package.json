@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "scripts": {
     "start": "EXPO_PUBLIC_API_ENV=local expo start --go",
-    "start:dev": "EXPO_PUBLIC_API_ENV=dev expo start --go",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",

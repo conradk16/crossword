@@ -1,4 +1,4 @@
-export type ApiEnvironment = 'local' | 'dev' | 'prod';
+export type ApiEnvironment = 'local' | 'prod';
 import { Platform } from "react-native";
 
 const LOCAL_API_URL =
@@ -8,8 +8,8 @@ const LOCAL_API_URL =
 
 function getEnv(): ApiEnvironment {
   const env = (process.env.EXPO_PUBLIC_API_ENV || 'prod').toLowerCase(); // if not defined, use prod (no need to set env variable in prod)
-  if (env != 'dev' && env != 'prod' && env != 'local') {
-    throw new Error("Env must be prod, local, or dev");
+  if (env != 'prod' && env != 'local') {
+    throw new Error("Env must be prod or local");
   }
   return env as ApiEnvironment;
 }
@@ -22,8 +22,6 @@ export function getApiBaseUrl(): string {
 
   const env = getEnv();
   switch (env) {
-    case 'dev':
-      return 'https://conradscrossword.dev';
     case 'local':
       return LOCAL_API_URL;
     default:

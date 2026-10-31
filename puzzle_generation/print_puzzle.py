@@ -115,13 +115,13 @@ def print_clues(clues: List[Dict[str, Any]]) -> None:
 
 def main(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(description="Fetch and print a crossword puzzle by date")
-    parser.add_argument("env", choices=["local", "dev", "prod"], help="Target environment")
+    parser.add_argument("env", choices=["local", "prod"], help="Target environment")
     parser.add_argument("date", help="Date in MM-DD-YYYY format")
     args = parser.parse_args(argv)
 
     validate_date_or_exit(args.date)
 
-    env_upper = {"local": "LOCAL", "dev": "DEV", "prod": "PROD"}[args.env]
+    env_upper = {"local": "LOCAL", "prod": "PROD"}[args.env]
     url_var = f"CROSSWORD_ADMIN_URL_{env_upper}"
     key_var = f"CROSSWORD_ADMIN_KEY_{env_upper}"
 

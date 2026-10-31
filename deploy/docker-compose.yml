@@ -1,5 +1,13 @@
+# Cap each container's json-file log at 3 x 10MB so logs can't fill the disk
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
+    logging: *default-logging
     image: postgres:17
     container_name: postgres
     environment:
@@ -9,11 +17,13 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
   nextjs-app:
-    image: conradkuklinsky/crossword-nextjs-{{tier}}:{{sha}}
+    logging: *default-logging
+    image: conradkuklinsky/crossword-nextjs-prod:{{sha}}
     container_name: nextjs
     restart: unless-stopped
   nginx:
-    image: conradkuklinsky/crossword-nginx-{{tier}}:{{sha}}
+    logging: *default-logging
+    image: conradkuklinsky/crossword-nginx-prod:{{sha}}
     container_name: nginx
     restart: unless-stopped
     ports:
@@ -26,7 +36,8 @@ services:
       - webroot:/var/www/certbot
 
   nginx_certbot_init:
-    image: conradkuklinsky/crossword-nginx-certbot-init-{{tier}}:{{sha}}
+    logging: *default-logging
+    image: conradkuklinsky/crossword-nginx-certbot-init-prod:{{sha}}
     container_name: nginx_certbot_init
     # Set a profile so this service doesn't get run by default with docker-compose up
     profiles:
@@ -39,6 +50,7 @@ services:
     restart: unless-stopped
 
   certbot:
+    logging: *default-logging
     # Use the official certbot image
     image: certbot/certbot
     container_name: certbot

@@ -61,10 +61,10 @@ def deploy(ip, docker_compose_replacements):
     ssh_connection.close()
     
 if __name__ == '__main__':
-    if len(sys.argv) != 3 or sys.argv[1] not in ['dev', 'prod']:
-        print('usage: python3 deploy.py <dev/prod> <7_char_commit_sha>')
+    if len(sys.argv) != 2:
+        print('usage: python3 deploy.py <7_char_commit_sha>')
         quit()
-    print(f'Deploying {sys.argv[1]}')
-    docker_compose_replacements = {'tier' : sys.argv[1], 'sha' : sys.argv[2]}
-    ec2_ip = '98.82.151.44' if sys.argv[1] == 'prod' else '34.218.130.248'
+    print('Deploying prod')
+    docker_compose_replacements = {'sha' : sys.argv[1]}
+    ec2_ip = '98.82.151.44'
     deploy(ec2_ip, docker_compose_replacements)
