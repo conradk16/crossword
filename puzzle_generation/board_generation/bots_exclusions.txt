@@ -6,3 +6,158 @@ icanso, not a common phrase (i can so)
 soisee, not a common standalone phrase (so i see)
 soleil, not english (french for sun)
 acuras, awkward pluralized car brand name
+adios, not english (spanish for goodbye), like mucho/ocho/veinte
+doha, obscure foreign capital for general US audience (like turin)
+italia, not english (italian spelling of italy), like amore
+dillon, name of person not famous enough (matt dillon)
+fonda, name of person not famous enough (jane/henry fonda)
+skort, too obscure garment
+emily, generic first name with no super famous person (like erica/naomi/anita)
+abbie, obscure first name variant with no super famous person
+rey, name (not a mega-celebrity) and also spanish for king (like roy)
+erika, name variant of already-excluded erica, no super famous person
+annie, generic first name with no super famous person (like emily/abbie)
+han, proper-noun name fragment / crosswordese (han solo, han dynasty)
+que, not english (spanish for what/that), like mucho/adios
+danny, generic first name with no super famous person (like emily/annie)
+kim, generic first name with no single super famous person (like danny)
+otis, crosswordese proper-noun name with no super famous person
+ranin, not a common standalone phrase (ran in), like yellout
+tres, not english (french/spanish for very/three), like veinte/merci
+lofat, not a common standalone phrase (lo fat), like nofat
+osaka, foreign city too obscure for young US audience (like turin/leeds/doha)
+posy, dated/obscure word for a small bouquet (like tripe/snit)
+milo, proper-noun name/brand with no super famous person
+louie, generic first name with no super famous person
+inapt, obscure word (people know inept/unfit, not inapt)
+runat, not a common standalone phrase (run at), like ranin/yellout
+andre, generic first name with no super famous person
+marie, generic first name with no super famous person
+zach, generic first name with no super famous person
+rebs, obscure civil-war slang for confederate soldiers
+eliot, proper-noun surname/name with no super famous person
+elmer, proper-noun name with no super famous person
+sara, generic first name with no super famous person
+goesto, not a common standalone phrase (goes to), like getsset
+itshot, not a common standalone phrase (its hot), like getsset
+guyana, obscure country for young US audience (like turin/osaka)
+ithaca, obscure place name for young US audience (like turin/leeds)
+oilsup, not a common standalone phrase (oils up), like getsset
+yellat, not a common standalone phrase (yell at), like yellout
+norma, generic first name with no super famous person
+carla, generic first name with no super famous person
+ellen, first name; degeneres is famous but fading in prominence for young audience
+eddie, generic first name with no super famous person
+didin, not a common standalone phrase (did in), like ranin/runat
+noire, not english (french feminine of noir), like amore/merci
+odin, proper-noun mythological name, not oprah/messi tier of fame
+kreme, brand misspelling (krispy kreme), not a real word
+danke, not english (german for thank you), like merci/mucho
+ethan, generic first name with no super famous person
+crete, foreign place name for young US audience (like turin/osaka/ithaca)
+wilma, proper-noun name (flintstone) with no super famous person
+femme, reads as foreign (french for woman), like amore/merci
+monoski, obscure niche winter-sport term (like skort)
+rufus, generic first name with no super famous person
+meiotic, obscure technical biology adjective (like gerund)
+puttout, ambiguous golf jargon, not known to most 18-year-olds
+fallsto, not a common standalone phrase (falls to), like goesto
+hal, proper-noun name (hal 9000), not oprah/messi tier of fame
+mrsmith, proper-noun name/title (mr smith), not a real standalone word
+oilspot, weak arbitrary compound, not a recognizable standalone term
+barry, generic first name with no super famous person
+zambian, demonym of obscure country zambia (like guyana)
+namaste, foreign-language greeting (sanskrit), like adios/merci
+melanie, generic first name with no super famous person
+caltech, proper-noun institution name (avoid proper nouns)
+ada, short crosswordese, usually a name; ambiguous
+tencent, ambiguous (ten-cent fragment or obscure chinese company)
+leerers, awkward obscure agent-noun nobody uses (like sloven)
+monty, proper-noun name with no super famous person
+avant, french fragment (only in avant-garde), foreign + partial
+edgar, proper-noun name with no super famous person
+hasto, not a common standalone phrase (has to), like goesto/fallsto
+monet, proper-noun surname (painter); a name, not oprah/messi tier
+diana, generic first name with no single super famous person
+chico, name / spanish for boy (foreign), like marx brother
+nymet, awkward proper-noun fragment (ny met)
+cspan, proper-noun network, dry/obscure for young audience
+arrid, brand misspelling (arrid deodorant, really means arid), not a real word like kreme
+irwin, proper-noun name with no super famous person (like eliot/elmer/edgar)
+styx, proper-noun mythological name (river styx) / band, not oprah/messi tier (like odin)
+ariel, proper-noun character/first name (little mermaid), not super famous tier (like wilma/diana)
+seiko, proper-noun watch brand, obscure for young audience (like cspan/caltech/tencent)
+lucie, proper-noun first name variant of lucy, no super famous person (like emily/marie)
+aflac, proper-noun insurance brand, avoid brands (like cspan/tencent/seiko)
+prada, proper-noun italian fashion brand, brand + foreign (like acuras/seiko)
+efron, proper-noun surname (zac efron), a name not super famous standalone (like eliot/edgar)
+clare, proper-noun first name, no super famous person (like marie/sara/norma)
+hades, proper-noun mythological name, not oprah/messi tier (like odin/styx)
+fudd, proper-noun character name (elmer fudd), obscure standalone (like elmer)
+sxsw, obscure proper-noun festival acronym, no vowels, hard to clue for young audience
+urals, obscure russian mountain range, foreign place name (like leeds/osaka/turin)
+seth, generic first name with no single super famous person (like ethan/zach/eddie)
+beth, generic first name with no super famous person (like norma/carla)
+ohgee, not a common standalone crossword entry (oh gee), weak mashed exclamation (like getsset)
+igive, not a common standalone crossword entry (i give), weak mashed phrase (like itshot/goesto)
+illgo, not a common standalone crossword entry (ill go), weak mashed phrase (like goesto/igive)
+illbe, not a common standalone crossword entry (ill be), weak mashed phrase (like goesto/igive)
+abit, not a common standalone crossword entry (a bit), weak mashed phrase (like hasto/getsset)
+evian, proper-noun french bottled-water brand, brand + foreign (like prada/seiko)
+damup, phrasal-verb mashup (dam up), not a common standalone entry (like oilsup/yellout)
+guinea, obscure african country (like guyana/zambia) and also an ethnic slur, best avoided
+uptoit, phrasal mashup (up to it), not a common standalone entry (like hasto/goesto/oilsup)
+wentin, phrasal mashup (went in), not a common standalone entry (like ranin/runat/didin)
+telly, british slang for tv, non-standard american and potentially unfamiliar to young US audience
+nepali, foreign demonym/language, obscure for young US audience (like zambian)
+hasnot, grammatical phrase (has not), not a standalone entry (like hasto/goesto)
+endit, phrasal mashup (end it), not a common standalone entry (like goesto/igive)
+sadie, generic first name, no super famous person and no alternate meaning (like emily/sara/norma)
+fitin, phrasal mashup (fit in), not a common standalone entry (like goesto/wentin)
+mirabel, obscure first name (encanto character), not widely recognized and no alternate meaning
+ninemen, arbitrary number+noun phrase (nine men), not a common standalone entry
+bestill, verb-phrase mashup (be still), not a common standalone entry (like goesto)
+vcrtape, awkward compound + dated tech (vcr) obscure for young audience
+gagline, obscure/arbitrary compound (gag line), not a standard term (like oilspot/podlike)
+meeny, nonsense rhyme fragment (eeny meeny miny moe), not a real standalone word
+talksat, phrasal mashup (talks at), not a common standalone entry (like yellat/goesto)
+yellsat, phrasal mashup (yells at), not a common standalone entry (like yellat/yellout)
+resaved, awkward re-prefixed word (re-saved), not a common standalone entry
+lloyd, generic name with no single super famous person and no alternate meaning (like emily/sara)
+beefcut, arbitrary compound (beef cut), standard phrasing is cut of beef (like oilspot)
+letin, phrasal mashup (let in), not a common standalone entry (like wentin/fitin)
+tralala, weak singing-filler interjection (tra la la), poor crossword fill
+wokemob, politically charged two-word phrase (woke mob), not a clean crossword entry
+takesin, phrasal mashup (takes in), not a common standalone entry (like wentin/letin)
+xamount, awkward phrase mashup (x amount), not a clean standalone entry
+youknew, subject+verb phrasal mashup (you knew), not a standalone entry
+itstime, subject+verb phrasal mashup (its time), not a standalone entry (like itshot)
+keepto, phrasal-verb fragment (keep to), not a common standalone entry (like goesto)
+nathan, generic first name, no super famous person and no alternate meaning (like ethan/seth)
+roarat, phrasal mashup (roar at), not a common standalone entry (like yellat/talksat)
+moocow, weak childish reduplication (moo cow), poor crossword fill
+hardput, weak/awkward idiom fill (hard put), not a clean crossword entry
+notnear, phrasal mashup (not near), not a common standalone entry (like nofat)
+ann, generic first name, no super famous person and no alternate meaning (like sara/norma)
+weeones, weak two-word phrase mashup (wee ones), not a clean standalone entry
+justout, phrasal mashup (just out), not a common standalone entry (like goesto)
+browner, awkward comparative (more brown), weak crossword fill
+notlike, phrasal mashup (not like), not a common standalone entry (like notnear/nofat)
+noshirt, arbitrary phrase fragment (no shirt), not a clean standalone entry
+fullset, weak arbitrary compound (full set), not a clean standalone entry
+lastrow, weak arbitrary compound (last row), not a clean standalone entry (like fullset)
+zealand, proper-noun fragment (new zealand) / obscure danish island, weak standalone
+liz, generic name/nickname, no super famous person and no alternate meaning (like ann/sara)
+itslate, phrasal mashup (its late), not a standalone entry (like itstime/itshot)
+fogup, phrasal verb mashup (fog up), not a common standalone entry (like damup/oilsup)
+stacy, generic first name, no super famous person and no alternate meaning (like ann/liz)
+toolate, phrasal mashup (too late), not a standalone entry (like itslate/itshot)
+herenow, phrase fragment (here now), standard is here and now, weak standalone
+valerie, generic first name, no super famous person and no alternate meaning (like stacy/liz)
+getinon, phrasal-verb mashup (get in on), not a common standalone entry
+flavour, british spelling of flavor, non-standard american spelling
+clint, bare first name reliant on one older actor (eastwood), borderline for young audience
+yaoming, awkward full-name entry of a retired athlete, fading for young audience
+chris, generic first name, no single super famous referent and no alternate meaning (like stacy)
+moongod, arbitrary compound (moon god), not a clean standalone entry (like beefcut/oilspot)
+bigmess, arbitrary adjective+noun phrase (big mess), weak fill

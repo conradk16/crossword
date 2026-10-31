@@ -2,8 +2,6 @@ from typing import List, Dict
 import os
 import json
 
-ANTHROPIC_MODEL = "claude-opus-4-7"
-
 
 def generate_clues_for_words(
     words: List[str],
@@ -15,7 +13,7 @@ def generate_clues_for_words(
     Args:
         words: List of answer words to clue.
         prompt_suffix: Optional text to insert between the prompt prefix and the word list.
-        use_anthropic: If True, use Anthropic (Opus 4.7); otherwise use OpenAI.
+        use_anthropic: If True, use Anthropic (ANTHROPIC_CLUE_MODEL); otherwise use OpenAI.
 
     Returns:
         Dict mapping each input word to its generated clue.
@@ -46,11 +44,10 @@ def generate_clues_for_words(
         "\nFor each entry, do the following: "
         "\n1. Write out 10 distinct clues, sometimes utilizing the crossword conventions listed above. "
         "\n2. Go through them one by one, and answer each of these questions to determine if it should be eliminated: (yes, this may take some time)"
-        "\n\ta. Does the clue really make sense? "
-        "\n\tb. Are there words or references that too many people won't know? "
-        "\n\tc. Does the clue contain part of the answer directly in it? (not allowed) "
+        "\n\ta. Are there words or references that too many people won't know? "
+        "\n\tb. Does the clue contain part of the answer directly in it? (not allowed) "
+        "\n\tc. Does the clue works grammatically, i.e. does the clue tense or plurality match the answer? If not, can it be adjusted to work? If not, discard it. "
         "\n3. Choose one from the remaining options, mixing things up between more straightforward and clever. Also, try to avoid doing too many one-word clues. "
-        "\n4. Determine if the clue works grammatically, i.e. does the clue tense or plurality match the answer? If not, adjust it before submitting. "
         "\n\n Think through why the following examples were overridden to get a sense of mistakes to avoid before you get started."
     )
 
@@ -173,6 +170,9 @@ def _call_anthropic(prompt: str, schema: Dict[str, object]) -> dict:
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY is not set.")
 
+    model = os.environ.get('ANTHROPIC_CLUE_MODEL', 'claude-opus-5-5')
+    reasoning_effort = os.environ.get('ANTHROPIC_REASONING_EFFORT', 'high')
+
     client = anthropic.Anthropic()
 
     tool = {
@@ -183,12 +183,12 @@ def _call_anthropic(prompt: str, schema: Dict[str, object]) -> dict:
 
     try:
         response = client.messages.create(
-            model=ANTHROPIC_MODEL,
+            model=model,
             max_tokens=20000,
             tools=[tool],
             messages=[{"role": "user", "content": prompt}],
             thinking={"type": "adaptive"},
-            output_config={"effort": "max"},
+            output_config={"effort": reasoning_effort},
         )
     except Exception as e:
         raise RuntimeError(f"Anthropic call failed: {e}")
@@ -205,4 +205,6 @@ def _call_anthropic(prompt: str, schema: Dict[str, object]) -> dict:
         if getattr(block, "type", None) == "tool_use" and getattr(block, "name", None) == "submit_clues":
             return block.input
 
-    raise RuntimeError("Anthropic response missing tool_use 'submit_clues' block.")
+    raise RuntimeError(
+        f"Anthropic response missing tool_use 'submit_clues' block (stop_reason={response.stop_reason})."
+    )

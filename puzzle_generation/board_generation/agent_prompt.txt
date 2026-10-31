@@ -1,4 +1,9 @@
-Can you generate puzzle boards locally for the next week? (<insert dates>) Just use the generate_boards.py interactive tool. Also please grep through conrads_exclusions.txt looking for rows with a comma to see the reason why they were excluded before you start so you understand the kinds of things we want to exclude. Also look through conrads_inclusions.txt to understand any previous bot exclusions that should have been included. When you come across a word that doesn't work, add it to bots_exclusions.txt with a reason and regenerate that day's board.
+Can you generate puzzle boards locally for the next week? (7/20/26 - 7/26/26) Just use the generate_boards.py interactive tool. Also please grep through conrads_exclusions.txt looking for rows with a comma to see the reason why they were excluded before you start so you understand the kinds of things we want to exclude. Also look through conrads_inclusions.txt to understand any previous bot exclusions that should have been included. When you come across a word that doesn't work, add it to bots_exclusions.txt with a reason and regenerate that day's board.
+
+Things I explicitly want to exclude:
+- almost all names except very famous ones like Oprah, Messi, Obama, etc. Famous actors that are not still prominent are too obscure for my younger audience (think Matt Dillon, Henry Fonda)
+- foreign language
+- very difficult / obscure words (e.g. skort). Days are not intended to get harder throughout the week, so Friday/Saturday is no excuse for a very obscure word. Most 18-year-olds should know it.
 
 Details on running things:
 1. Start local nextjs with `npm run dev` in the nextjs directory

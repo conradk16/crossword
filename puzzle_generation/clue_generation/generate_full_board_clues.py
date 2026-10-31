@@ -16,7 +16,8 @@ Environment variables:
   - CROSSWORD_ADMIN_KEY_LOCAL
 
 Also requires (depending on USE_ANTHROPIC):
-  - ANTHROPIC_API_KEY (when USE_ANTHROPIC=True; uses Claude Opus 4.7)
+  - ANTHROPIC_API_KEY (when USE_ANTHROPIC=True), and optionally ANTHROPIC_CLUE_MODEL /
+    ANTHROPIC_REASONING_EFFORT
   - OPENAI_API_KEY (and optionally OPENAI_CLUE_MODEL) when USE_ANTHROPIC=False
 """
 
@@ -35,8 +36,8 @@ import requests
 
 from utils import generate_clues_for_words
 
-# Toggle clue-generation provider: True => Anthropic (Claude Opus 4.7), False => OpenAI.
-USE_ANTHROPIC = False
+# Toggle clue-generation provider: True => Anthropic (ANTHROPIC_CLUE_MODEL), False => OpenAI.
+USE_ANTHROPIC = True
 
 # Use macOS system trust store so Python requests trusts the same CAs as curl
 try:
@@ -105,9 +106,9 @@ def to_iso(d: dt.date) -> str:
 
 
 def get_config(env: str) -> tuple[str, str]:
-    env_upper = {"local": "LOCAL", "dev": "DEV", "prod": "PROD"}.get(env)
+    env_upper = {"local": "LOCAL", "prod": "PROD"}.get(env)
     if env_upper is None:
-        raise RuntimeError("Invalid --env; expected one of: local, dev, prod")
+        raise RuntimeError("Invalid --env; expected one of: local, prod")
     url_var = f"CROSSWORD_ADMIN_URL_{env_upper}"
     key_var = f"CROSSWORD_ADMIN_KEY_{env_upper}"
     base_url = os.environ.get(url_var)

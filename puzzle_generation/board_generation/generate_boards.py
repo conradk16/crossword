@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from typing import Dict, List, Set, Tuple, Optional
-from collections import defaultdict
 import os
 import sys
 import re
 import json
 import random
+import time
+import zlib
+import multiprocessing
 from datetime import datetime, timedelta, date
 import argparse
 
@@ -104,28 +106,99 @@ def parse_templates(templates_path: str) -> List[Tuple[str, int, int, Set[Tuple[
     return results
 
 
-def build_trie_from_words(all_words: Set[str], max_length: int, min_length: int = 2) -> Trie:
-    trie = Trie()
-    # Group by length for speed
-    words_by_len: Dict[int, List[str]] = defaultdict(list)
+def compute_slot_map(
+    rows: int, cols: int, black_squares: Set[Tuple[int, int]]
+) -> Tuple[Dict[Tuple[int, int], Tuple[int, int]], Dict[Tuple[int, int], Tuple[int, int]]]:
+    """For every open cell, the (start, length) of the across and down run it belongs to."""
+    row_slot: Dict[Tuple[int, int], Tuple[int, int]] = {}
+    col_slot: Dict[Tuple[int, int], Tuple[int, int]] = {}
+
+    for r in range(rows):
+        c = 0
+        while c < cols:
+            if (r, c) in black_squares:
+                c += 1
+                continue
+            end = c
+            while end < cols and (r, end) not in black_squares:
+                end += 1
+            for x in range(c, end):
+                row_slot[(r, x)] = (c, end - c)
+            c = end
+
+    for c in range(cols):
+        r = 0
+        while r < rows:
+            if (r, c) in black_squares:
+                r += 1
+                continue
+            end = r
+            while end < rows and (end, c) not in black_squares:
+                end += 1
+            for x in range(r, end):
+                col_slot[(x, c)] = (r, end - r)
+            r = end
+
+    return row_slot, col_slot
+
+
+def required_slot_lengths(
+    row_slot: Dict[Tuple[int, int], Tuple[int, int]],
+    col_slot: Dict[Tuple[int, int], Tuple[int, int]],
+) -> Set[int]:
+    """The distinct answer lengths a template actually needs (runs of 1 are not entries)."""
+    lengths: Set[int] = set()
+    for _, length in row_slot.values():
+        if length >= 2:
+            lengths.add(length)
+    for _, length in col_slot.values():
+        if length >= 2:
+            lengths.add(length)
+    return lengths
+
+
+def build_tries_by_length(all_words: Set[str], lengths: Set[int]) -> Dict[int, Trie]:
+    """One trie per answer length.
+
+    A single shared trie cannot tell "some word continues this prefix" from "a word of
+    the length this slot needs continues this prefix", so the search spends a large part
+    of its time descending prefixes that can only finish at the wrong length.
+    """
+    tries: Dict[int, Trie] = {length: Trie() for length in lengths}
     for w in all_words:
         lw = w.lower()
         if not lw.isalpha():
             continue
-        if len(lw) < min_length or len(lw) > max_length:
-            continue
-        words_by_len[len(lw)].append(lw)
-    for length, words in words_by_len.items():
-        if length < min_length or length > max_length:
-            continue
-        for word in words:
-            trie.add_word(word)
-    return trie
+        trie = tries.get(len(lw))
+        if trie is not None:
+            trie.add_word(lw)
+    return tries
 
 
-def fill_grid(trie: Trie, rows: int, cols: int, black_squares: Set[Tuple[int, int]]) -> List[List[str]]:
+# backtrack() outcomes: solved, fully explored with no solution, or cut off by the budget.
+_SOLVED = 1
+_FAILED = 0
+_ABORTED = -1
+
+
+def fill_grid(
+    tries: Dict[int, Trie],
+    rows: int,
+    cols: int,
+    black_squares: Set[Tuple[int, int]],
+    row_slot: Dict[Tuple[int, int], Tuple[int, int]],
+    col_slot: Dict[Tuple[int, int], Tuple[int, int]],
+    node_budget: Optional[int] = None,
+) -> Tuple[List[List[str]], bool]:
+    """Fill the grid one letter at a time.
+
+    Returns (grid, exhausted). grid is [] when nothing was found; exhausted is True only
+    when the whole search space was explored, meaning the template is unfillable with the
+    current word list and retrying under a different seed cannot help.
+    """
     grid: List[List[str]] = [[''] * cols for _ in range(rows)]
     used_words: Set[str] = set()
+    nodes = 0
 
     fill_positions: List[Tuple[int, int]] = []
     for r in range(rows):
@@ -133,126 +206,185 @@ def fill_grid(trie: Trie, rows: int, cols: int, black_squares: Set[Tuple[int, in
             if (r, c) not in black_squares:
                 fill_positions.append((r, c))
 
-    def is_black(r: int, c: int) -> bool:
-        return (r, c) in black_squares
-
-    def get_row_prefix(r: int, c: int) -> str:
-        start_c = c
-        cc = c - 1
-        while cc >= 0 and not is_black(r, cc):
-            start_c = cc
-            if grid[r][cc] == '':
-                break
-            cc -= 1
-        prefix_chars: List[str] = []
-        for x in range(start_c, c):
-            if grid[r][x] == '':
-                break
-            prefix_chars.append(grid[r][x])
-        return ''.join(prefix_chars)
-
-    def get_col_prefix(r: int, c: int) -> str:
-        start_r = r
-        rr = r - 1
-        while rr >= 0 and not is_black(rr, c):
-            start_r = rr
-            if grid[rr][c] == '':
-                break
-            rr -= 1
-        prefix_chars: List[str] = []
-        for x in range(start_r, r):
-            if grid[x][c] == '':
-                break
-            prefix_chars.append(grid[x][c])
-        return ''.join(prefix_chars)
-
-    def completes_across(r: int, c: int) -> bool:
-        return c == cols - 1 or is_black(r, c + 1)
-
-    def completes_down(r: int, c: int) -> bool:
-        return r == rows - 1 or is_black(r + 1, c)
-
-    def build_completed_row_word(r: int, c: int, char: str) -> str:
-        start_c = c
-        cc = c - 1
-        while cc >= 0 and not is_black(r, cc) and grid[r][cc] != '':
-            start_c = cc
-            cc -= 1
-        letters: List[str] = []
-        for x in range(start_c, c):
-            letters.append(grid[r][x])
-        letters.append(char)
-        return ''.join(letters)
-
-    def build_completed_col_word(r: int, c: int, char: str) -> str:
-        start_r = r
-        rr = r - 1
-        while rr >= 0 and not is_black(rr, c) and grid[rr][c] != '':
-            start_r = rr
-            rr -= 1
-        letters: List[str] = []
-        for x in range(start_r, r):
-            letters.append(grid[x][c])
-        letters.append(char)
-        return ''.join(letters)
-
-    def backtrack(pos_index: int) -> bool:
+    def backtrack(pos_index: int) -> int:
+        nonlocal nodes
         if pos_index == len(fill_positions):
-            return True
+            return _SOLVED
+        nodes += 1
+        if node_budget is not None and nodes > node_budget:
+            return _ABORTED
+
         r, c = fill_positions[pos_index]
+        row_start, row_len = row_slot[(r, c)]
+        col_start, col_len = col_slot[(r, c)]
+        # A run of length 1 is not an entry, so it constrains nothing.
+        row_trie = tries.get(row_len)
+        col_trie = tries.get(col_len)
 
-        row_prefix = get_row_prefix(r, c)
-        col_prefix = get_col_prefix(r, c)
-        possible_for_row = trie.is_valid_prefix(row_prefix)
-        if not possible_for_row:
-            return False
-        possible_for_col = trie.is_valid_prefix(col_prefix)
-        if not possible_for_col:
-            return False
+        row_prefix = ''
+        col_prefix = ''
+        possible: Optional[Set[str]] = None
 
-        possible = list(possible_for_row.intersection(possible_for_col))
+        if row_trie is not None:
+            row_prefix = ''.join(grid[r][x] for x in range(row_start, c))
+            possible = row_trie.is_valid_prefix(row_prefix)
+            if not possible:
+                return _FAILED
+        if col_trie is not None:
+            col_prefix = ''.join(grid[x][c] for x in range(col_start, r))
+            possible_col = col_trie.is_valid_prefix(col_prefix)
+            if not possible_col:
+                return _FAILED
+            possible = possible_col if possible is None else possible.intersection(possible_col)
+
+        if possible is None:
+            possible = set('abcdefghijklmnopqrstuvwxyz')
         if not possible:
-            return False
-        random.shuffle(possible)
+            return _FAILED
 
-        for ch in possible:
-            completed_words: List[str] = []
-            if completes_across(r, c):
-                completed_row_word = build_completed_row_word(r, c, ch)
-                if not trie.is_word(completed_row_word):
-                    continue
-                completed_words.append(completed_row_word)
-            if completes_down(r, c):
-                completed_col_word = build_completed_col_word(r, c, ch)
-                if not trie.is_word(completed_col_word):
-                    continue
-                completed_words.append(completed_col_word)
+        candidates = list(possible)
+        random.shuffle(candidates)
 
-            unique_completed = list(dict.fromkeys(completed_words))
-            if len(unique_completed) != len(completed_words):
+        for ch in candidates:
+            completed: List[Tuple[int, str]] = []
+            if row_trie is not None and c == row_start + row_len - 1:
+                word = row_prefix + ch
+                if not row_trie.is_word(word):
+                    continue
+                completed.append((row_len, word))
+            if col_trie is not None and r == col_start + col_len - 1:
+                word = col_prefix + ch
+                if not col_trie.is_word(word):
+                    continue
+                completed.append((col_len, word))
+
+            words = [w for _, w in completed]
+            if len(set(words)) != len(words):
                 continue
-            if any(w in used_words for w in unique_completed):
+            if any(w in used_words for w in words):
                 continue
 
             grid[r][c] = ch
-            for w in unique_completed:
-                trie.remove_word(w)
-                used_words.add(w)
+            for length, word in completed:
+                tries[length].remove_word(word)
+                used_words.add(word)
 
-            if backtrack(pos_index + 1):
-                return True
+            result = backtrack(pos_index + 1)
+            if result == _SOLVED:
+                return _SOLVED
 
-            for w in unique_completed:
-                trie.add_word(w)
-                used_words.remove(w)
+            for length, word in completed:
+                tries[length].add_word(word)
+                used_words.discard(word)
             grid[r][c] = ''
 
-        return False
+            if result == _ABORTED:
+                return _ABORTED
 
-    solved = backtrack(0)
-    if not solved:
-        return []
-    return grid
+        return _FAILED
+
+    result = backtrack(0)
+    # The solved path returns without unwinding, so put the placed words back either way;
+    # the caller reuses these tries for every later attempt.
+    for word in used_words:
+        tries[len(word)].add_word(word)
+
+    if result == _SOLVED:
+        return grid, False
+    return [], result == _FAILED
+
+
+# Randomised backtracking on these templates is heavy tailed: most seeds finish quickly
+# and a minority run essentially forever. Capping the search and restarting under a new
+# seed converts that tail into a bounded, parallelisable cost.
+INITIAL_NODE_BUDGET = 200_000
+MAX_NODE_BUDGET = 25_600_000
+
+# Per-process state for pool workers, populated by _worker_init.
+_WORKER_STATE: Dict[str, object] = {}
+
+
+def _worker_init(
+    words: Set[str], rows: int, cols: int, black_squares: Set[Tuple[int, int]]
+) -> None:
+    row_slot, col_slot = compute_slot_map(rows, cols, black_squares)
+    tries = build_tries_by_length(words, required_slot_lengths(row_slot, col_slot))
+    _WORKER_STATE['tries'] = tries
+    _WORKER_STATE['geometry'] = (rows, cols, black_squares, row_slot, col_slot)
+
+
+def _worker_attempt(task: Tuple[int, int]) -> Tuple[int, List[List[str]], bool]:
+    seed, budget = task
+    rows, cols, black_squares, row_slot, col_slot = _WORKER_STATE['geometry']  # type: ignore[misc]
+    random.seed(seed)
+    grid, exhausted = fill_grid(
+        _WORKER_STATE['tries'],  # type: ignore[arg-type]
+        rows, cols, black_squares, row_slot, col_slot,
+        node_budget=budget,
+    )
+    return seed, grid, exhausted
+
+
+def solve_board(
+    tries: Optional[Dict[int, Trie]],
+    rows: int,
+    cols: int,
+    black_squares: Set[Tuple[int, int]],
+    row_slot: Dict[Tuple[int, int], Tuple[int, int]],
+    col_slot: Dict[Tuple[int, int], Tuple[int, int]],
+    seed_base: int,
+    pool: Optional[object] = None,
+    workers: int = 1,
+) -> Tuple[List[List[str]], Optional[int], str]:
+    """Race several budgeted, randomly seeded searches; double the budget each round.
+
+    Returns (grid, winning_seed, status) where status is 'solved', 'infeasible' (the
+    template cannot be filled from this word list) or 'budget' (gave up).
+    """
+    budget = INITIAL_NODE_BUDGET
+    seed = seed_base
+
+    while budget <= MAX_NODE_BUDGET:
+        tasks = [(seed + i, budget) for i in range(max(1, workers))]
+        seed += len(tasks)
+
+        if pool is not None:
+            results = pool.imap_unordered(_worker_attempt, tasks)
+        else:
+            results = (
+                (
+                    t[0],
+                    *_run_attempt_locally(tries, rows, cols, black_squares, row_slot, col_slot, t),
+                )
+                for t in tasks
+            )
+
+        for won_seed, grid, exhausted in results:
+            if grid:
+                return grid, won_seed, 'solved'
+            if exhausted:
+                # Fully explored: a different seed walks the same tree in a different
+                # order, so there is nothing to gain from retrying.
+                return [], None, 'infeasible'
+
+        budget *= 2
+
+    return [], None, 'budget'
+
+
+def _run_attempt_locally(
+    tries: Optional[Dict[int, Trie]],
+    rows: int,
+    cols: int,
+    black_squares: Set[Tuple[int, int]],
+    row_slot: Dict[Tuple[int, int], Tuple[int, int]],
+    col_slot: Dict[Tuple[int, int], Tuple[int, int]],
+    task: Tuple[int, int],
+) -> Tuple[List[List[str]], bool]:
+    assert tries is not None
+    seed, budget = task
+    random.seed(seed)
+    return fill_grid(tries, rows, cols, black_squares, row_slot, col_slot, node_budget=budget)
 
 
 def compute_entries(rows: int, cols: int, black_squares: Set[Tuple[int, int]], final_grid: List[List[object]]) -> List[Dict[str, object]]:
@@ -436,7 +568,15 @@ def build_final_grid(rows: int, cols: int, blacks: Set[Tuple[int, int]], grid: L
 def main():
     parser = argparse.ArgumentParser(description='Generate board for a date and upload to local environment (interactive).')
     parser.add_argument('date', help='Date to generate board for, in mm-dd-yyyy')
+    parser.add_argument(
+        '--workers',
+        type=int,
+        default=min(8, os.cpu_count() or 1),
+        help='Parallel search processes to race against each other (1 disables multiprocessing)',
+    )
     args = parser.parse_args()
+
+    workers = max(1, args.workers)
 
     try:
         target_dt = datetime.strptime(args.date, '%m-%d-%Y').date()
@@ -489,9 +629,35 @@ def main():
             print(f"No usable words available for {iso(target_dt)}")
             sys.exit(1)
 
-        max_len = max(rows, cols)
-        print(f"Building word trie for {rows}x{cols} grid...")
-        trie = build_trie_from_words(usable_words, max_length=max_len, min_length=2)
+        row_slot, col_slot = compute_slot_map(rows, cols, blacks)
+        slot_lengths = required_slot_lengths(row_slot, col_slot)
+
+        counts: Dict[int, int] = {length: 0 for length in slot_lengths}
+        for w in usable_words:
+            if len(w) in counts:
+                counts[len(w)] += 1
+        empty = sorted(length for length, n in counts.items() if n == 0)
+        if empty:
+            print(
+                f"No usable {'/'.join(str(x) for x in empty)}-letter words remain, so the "
+                f"{weekday_name} template cannot be filled."
+            )
+            sys.exit(1)
+
+        print(f"Building word tries for {rows}x{cols} grid...")
+        # With a pool each worker builds its own tries in _worker_init.
+        tries: Optional[Dict[int, Trie]] = (
+            build_tries_by_length(usable_words, slot_lengths) if workers == 1 else None
+        )
+
+        pool = None
+        if workers > 1:
+            pool = multiprocessing.Pool(
+                processes=workers,
+                initializer=_worker_init,
+                initargs=(usable_words, rows, cols, blacks),
+            )
+            print(f"Racing {workers} search processes.")
 
         # Interactive generation loop
         attempt_num = 0
@@ -501,19 +667,31 @@ def main():
             print(f"Generating board for {iso(target_dt)} ({weekday_name}) - Attempt {attempt_num + 1}")
             print(f"{'='*60}")
 
-            grid: List[List[str]] = []
-            solved = False
-            for inner_attempt in range(20):
-                random.seed((hash(iso(target_dt)) ^ attempt_num ^ inner_attempt) & 0xFFFFFFFF)
-                grid = fill_grid(trie, rows, cols, blacks)
-                if grid:
-                    solved = True
-                    break
+            # zlib.crc32 rather than hash(): str hashing is salted per process, so seeds
+            # built from it are not reproducible across runs.
+            seed_base = (zlib.crc32(iso(target_dt).encode()) + attempt_num * 1_000_003) & 0xFFFFFFFF
 
-            if not solved:
-                print(f"Failed to solve grid after 20 attempts")
+            started = time.monotonic()
+            grid, won_seed, status = solve_board(
+                tries, rows, cols, blacks, row_slot, col_slot,
+                seed_base, pool=pool, workers=workers,
+            )
+            elapsed = time.monotonic() - started
+
+            if status == 'infeasible':
+                print(
+                    "This template cannot be filled from the remaining word list "
+                    "(the search space was explored exhaustively). Try relaxing exclusions."
+                )
+                if pool is not None:
+                    pool.terminate()
+                sys.exit(1)
+            if status != 'solved':
+                print(f"Gave up after {elapsed:.1f}s without finding a fill; retrying.")
                 attempt_num += 1
                 continue
+
+            print(f"Solved in {elapsed:.1f}s (seed {won_seed}).")
 
             final_grid = build_final_grid(rows, cols, blacks, grid)
 
@@ -536,6 +714,8 @@ def main():
                 print(f"Upload successful: {result}")
             except Exception as e:
                 print(f"Upload failed: {e}")
+                if pool is not None:
+                    pool.terminate()
                 sys.exit(1)
 
             # Ask user if satisfied
@@ -555,6 +735,8 @@ def main():
                             break
                         elif nd in ['n', 'no']:
                             print("\nDone!")
+                            if pool is not None:
+                                pool.terminate()
                             return
                         else:
                             print("Please enter 'y' or 'n'")
@@ -568,6 +750,10 @@ def main():
 
             if advance_to_next_day:
                 break
+
+        # The next day excludes this board's words, so its tries must be rebuilt.
+        if pool is not None:
+            pool.terminate()
 
         if advance_to_next_day:
             continue

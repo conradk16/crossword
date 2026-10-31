@@ -86,3 +86,108 @@ Original (rejected) clue: Was safe at home, perhaps
 Preferred clue: Moved like a hockey puck
 Reason original was rejected: too difficult, niche baseball clue with no hint like a '?' that the clue refers to baseball. Also "perhaps" implies that being safe at home is an example of "slid" which it is not necessarily since sliding does not guarantee safety.
 ---
+Word: ELMOS
+Original (rejected) clue: "St. ___ Fire"
+Preferred clue: St. ___ fire (weather phenomenon)
+Reason original was rejected: shouldn't be in quotes, and is pretty advanced so could use the extra hint in parens
+---
+Word: KOREA
+Original (rejected) clue: North or South ___
+Preferred clue: Land split in 1945
+Reason original was rejected: "North or South ___" could refer to so many things and is kind of boring
+---
+Word: ALARM
+Original (rejected) clue: Wake-up call
+Preferred clue: Burglar's nemesis
+Reason original was rejected: "wake up call" is not exactly an alarm, plus this new one is funnier
+---
+Word: CAPER
+Original (rejected) clue: Heist
+Preferred clue: Pizza or pasta garnish
+Reason original was rejected: Heist meaning is too obscure
+---
+Word: PUT
+Original (rejected) clue: Set down
+Preferred clue: "Stay ___!"
+Reason original was rejected: "set down" is not a clean substitute here, actually
+---
+Word: USA
+Original (rejected) clue: Olympic chant
+Preferred clue: "Born in the ___" (Springsteen hit)
+Reason original was rejected: every country has an olympic chant, not clear enough
+---
+Word: ATSEA
+Original (rejected) clue: Bewildered
+Preferred clue: Far from port
+Reason original was rejected: Bewildered meaning is not common these days so too obscure for my audience
+---
+Word: NORAH
+Original (rejected) clue: Jones of "Come Away with Me"
+Preferred clue: Jones of "Don't Know Why"
+Reason original was rejected: "Come Away with me" is not as popular, need easier clue
+---
+Word: UMAMI
+Original (rejected) clue: Fifth basic taste
+Preferred clue: Taste associated with MSG
+Reason original was rejected: fifth basic taste is a bit too niche
+---
+Word: PATIO
+Original (rejected) clue: Backyard hangout
+Preferred clue: Backyard hangout spot
+Reason original was rejected: a patio is not a hangout
+---
+Word: BLOUSES
+Original (rejected) clue: Women's tops
+Preferred clue: Buttoned shirts, often
+Reason original was rejected: women's tops is too broad
+---
+Word: FAT
+Original (rejected) clue: Butter, e.g.
+Preferred clue: Saturated ___
+Reason original was rejected: butter is not pure fat
+---
+Word: BLOTTER
+Original (rejected) clue: Police log
+Preferred clue: Pen-mishap remedy
+Reason original was rejected: police log meaning too obscure
+---
+Word: RAD
+Original (rejected) clue: "Totally ___!"
+Preferred clue: "Far out"
+Reason original was rejected: "Totally ___!" is too difficult, could be anything
+---
+Word: PAM
+Original (rejected) clue: Cooking spray brand
+Preferred clue: "The Office" receptionist
+Reason original was rejected: Cooking spray brand not as well known
+---
+Word: PEACE
+Original (rejected) clue: "Give ___ a chance"
+Preferred clue: End of hostilities
+Reason original was rejected: not a super well-known song
+---
+Word: OILPALM
+Original (rejected) clue: Malaysian cash crop
+Preferred clue: Tropical tree that produces a cooking ingredient
+Reason original was rejected: too difficult a clue
+---
+Word: FBI
+Original (rejected) clue: Federal law enforcement agcy.
+Preferred clue: Law enforcement agcy.
+Reason original was rejected: Don't use the name in the clue (Federal = F)
+---
+Word: FEELME
+Original (rejected) clue: "Get it?" in slang
+Preferred clue: "Know what I mean?"
+Reason original was rejected: "get it" is likely referring to jokes, too hard
+---
+Word: SCOOP
+Original (rejected) clue: Ice cream server's tool
+Preferred clue: Ice cream serving
+Reason original was rejected: better clue
+---
+Word: HOLLA
+Original (rejected) clue: Slangy greeting
+Preferred clue: Shout, in slang
+Reason original was rejected: slangy greeting is too generic
+---
