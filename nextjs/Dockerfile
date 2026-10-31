@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:24-alpine
 
 ARG AWS_REGION
 
@@ -28,7 +28,7 @@ RUN apk add --no-cache aws-cli jq curl && \
 
 WORKDIR /app
 
-# Drop root: run as the unprivileged 'node' user shipped with node:20-alpine.
+# Drop root: run as the unprivileged 'node' user shipped with node:24-alpine.
 # Own the (empty) workdir as node, then write every file as node via --chown so
 # the app can manage its runtime cache (.next/cache) WITHOUT a recursive `chown -R`
 # at the end (which would duplicate all of /app into an extra layer, ~doubling it).
