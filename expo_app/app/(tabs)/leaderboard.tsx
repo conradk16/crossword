@@ -12,7 +12,6 @@ import { useAuth } from '@/services/AuthContext';
 import { useFriendRequestCount } from '@/services/FriendRequestCountContext';
 import { getFriendlyError } from '@/utils/errorUtils';
 import { getCachedLeaderboard, clearCachedLeaderboard } from '@/services/leaderboardPrefetch';
-import { WeeklyLeaderboard, type WeeklyLeaderboardData } from '@/components/WeeklyLeaderboard';
 
 type LeaderboardEntry = {
   rank: number;
@@ -21,12 +20,8 @@ type LeaderboardEntry = {
 };
 import { withBaseUrl } from '@/constants/Api';
 
-type LeaderboardView = 'today' | 'week';
-
 export default function LeaderboardScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [weekly, setWeekly] = useState<WeeklyLeaderboardData | null>(null);
-  const [view, setView] = useState<LeaderboardView>('today');
   const [date, setDate] = useState<string>('');
   const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -42,7 +37,6 @@ export default function LeaderboardScreen() {
     setError(null);
     if (!token) {
       setLeaderboard([]);
-      setWeekly(null);
       setDate('');
       setCurrentUsername(null);
       return;
@@ -70,7 +64,7 @@ export default function LeaderboardScreen() {
       abortRef.current?.abort();
       abortRef.current = controller;
 
-      const [leaderboardResponse, profileResponse, weeklyResponse] = await Promise.all([
+      const [leaderboardResponse, profileResponse] = await Promise.all([
         fetch(withBaseUrl('/api/puzzles/daily/leaderboard'), {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
@@ -79,21 +73,7 @@ export default function LeaderboardScreen() {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
         }),
-        // Weekly view is optional; a failure here must not break the daily leaderboard
-        fetch(withBaseUrl('/api/puzzles/daily/leaderboard/weekly'), {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        }).catch((e) => {
-          if ((e as any)?.name === 'AbortError') throw e;
-          return null;
-        }),
       ]);
-
-      if (weeklyResponse?.ok) {
-        try {
-          setWeekly(await weeklyResponse.json());
-        } catch {}
-      }
 
       if (profileResponse.ok) {
         const profile: { username?: string | null } = await profileResponse.json();
@@ -211,43 +191,18 @@ export default function LeaderboardScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ThemedView style={[styles.header, styles.headerRow]}>
-        <View>
-          <ThemedText style={styles.title}>{view === 'today' ? 'Daily Leaderboard' : 'Weekly Leaderboard'}</ThemedText>
-          <ThemedText style={styles.subtitle}>{view === 'today' ? date : 'Last 7 days'}</ThemedText>
-        </View>
-        <View style={styles.toggle} accessibilityRole="tablist">
-          {(['today', 'week'] as const).map((v) => (
-            <Pressable
-              key={v}
-              style={[styles.toggleOption, view === v && styles.toggleOptionActive]}
-              onPress={() => setView(v)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: view === v }}
-            >
-              <ThemedText style={[styles.toggleText, view === v && styles.toggleTextActive]}>
-                {v === 'today' ? 'Today' : 'Week'}
-              </ThemedText>
-            </Pressable>
-          ))}
-        </View>
+      <ThemedView style={styles.header}>
+        <ThemedText style={styles.title}>Daily Leaderboard</ThemedText>
+        <ThemedText style={styles.subtitle}>{date}</ThemedText>
       </ThemedView>
-      {view === 'today' ? (
-        <FlatList
-          contentContainerStyle={styles.listContent}
-          data={leaderboard}
-          keyExtractor={(item) => `${item.user.id}`}
-          renderItem={({ item }) => <LeaderboardRow item={item} />}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : weekly ? (
-        <WeeklyLeaderboard data={weekly} />
-      ) : (
-        <View style={styles.centered}>
-          <ThemedText style={styles.errorText}>{"Weekly stats aren't available right now."}</ThemedText>
-        </View>
-      )}
+      <FlatList
+        contentContainerStyle={styles.listContent}
+        data={leaderboard}
+        keyExtractor={(item) => `${item.user.id}`}
+        renderItem={({ item }) => <LeaderboardRow item={item} />}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 }
@@ -289,35 +244,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#ffffff',
     minHeight: 60,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginRight: SCROLL_CONTENT_HORIZONTAL_PADDING,
-  },
-  toggle: {
-    flexDirection: 'row',
-    padding: 2,
-    borderRadius: 8,
-    backgroundColor: '#ececea',
-  },
-  toggleOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  toggleOptionActive: {
-    backgroundColor: '#ffffff',
-  },
-  toggleText: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '600',
-    color: '#6b6b66',
-  },
-  toggleTextActive: {
-    color: '#007AFF',
   },
   title: {
     fontSize: 18,
