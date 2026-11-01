@@ -8,6 +8,10 @@ export async function GET() {
         {
           appID: '48NP6Y8GUR.com.conradscrossword',
           paths: ['/share', '/share/*']
+        },
+        {
+          appID: '48NP6Y8GUR.com.conradkuklinsky.dailies',
+          paths: ['/dailies/join/*']
         }
       ]
     }
